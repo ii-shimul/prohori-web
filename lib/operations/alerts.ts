@@ -1,3 +1,5 @@
+import type { components } from "@/lib/api/generated";
+
 import type { AlertType, Provider, Severity } from "@/types/domain";
 
 export type AlertStatus = "active" | "acknowledged" | "escalated" | "resolved" | "closed";
@@ -32,6 +34,12 @@ export type OperationsAlert = {
   linkedCase: string | null;
   evidence: AlertEvidence[];
 };
+
+type ApiAlert = components["schemas"]["Alert"];
+type ApiAlertDetail = components["schemas"]["AlertDetail"];
+type ApiProvider = components["schemas"]["Provider"];
+type ApiOutlet = components["schemas"]["Outlet"];
+type AlertSource = "fixture" | "api";
 
 export type AlertFilters = {
   severity: Severity | "all";
@@ -151,7 +159,26 @@ export function parseAlertFilters(searchParams: Record<string, string | string[]
   };
 }
 
-export async function getAlerts(filters: AlertFilters): Promise<OperationsAlert[]> {
+export async function getAlerts(filters: AlertFilters, source: AlertSource = "fixture"): Promise<OperationsAlert[]> {
+  if (source === "api") {
+    const { apiRequest } = await import("@/lib/api/client");
+    const accessToken = await requireAccessToken();
+    const [alerts, providers, outlets] = await Promise.all([
+      apiRequest<readonly ApiAlert[]>("alerts", accessToken, {
+        query: alertQuery(filters),
+      }),
+      apiRequest<readonly ApiProvider[]>("providers", accessToken),
+      apiRequest<readonly ApiOutlet[]>("outlets", accessToken),
+    ]);
+    return alerts
+      .map((alert) => toOperationsAlert(alert, providers, outlets))
+      .filter((alert) => filters.severity === "all" || alert.severity === filters.severity)
+      .filter((alert) => filters.status === "all" || alert.status === filters.status)
+      .filter((alert) => filters.type === "all" || alert.type === filters.type)
+      .filter((alert) => filters.dataQuality === "all" || alert.dataQuality === filters.dataQuality)
+      .toSorted((left, right) => right.occurredAt.localeCompare(left.occurredAt));
+  }
+
   return fixtureAlerts
     .filter((alert) => alert.provider === currentProviderScope)
     .filter((alert) => filters.severity === "all" || alert.severity === filters.severity)
@@ -161,7 +188,103 @@ export async function getAlerts(filters: AlertFilters): Promise<OperationsAlert[
     .toSorted((left, right) => right.occurredAt.localeCompare(left.occurredAt));
 }
 
-export async function getAlert(alertId: string): Promise<OperationsAlert | null> {
+export async function getAlert(alertId: string, source: AlertSource = "fixture"): Promise<OperationsAlert | null> {
+  if (source === "api") {
+    const { apiRequest } = await import("@/lib/api/client");
+    const accessToken = await requireAccessToken();
+    try {
+      const [alert, providers, outlets] = await Promise.all([
+        apiRequest<ApiAlertDetail>(`alerts/${encodeURIComponent(alertId)}`, accessToken),
+        apiRequest<readonly ApiProvider[]>("providers", accessToken),
+        apiRequest<readonly ApiOutlet[]>("outlets", accessToken),
+      ]);
+      return toOperationsAlert(alert, providers, outlets);
+    } catch (error) {
+      if (error instanceof Error && "status" in error && error.status === 404) return null;
+      throw error;
+    }
+  }
+
   const alert = fixtureAlerts.find((item) => item.id === alertId && item.provider === currentProviderScope);
   return alert ?? null;
+}
+
+function alertQuery(filters: AlertFilters): Record<string, string | boolean> {
+  const query: Record<string, string | boolean> = {};
+  if (filters.status !== "all") query.active = filters.status === "active";
+  if (filters.type !== "all") query.type = toApiAlertType(filters.type);
+  return query;
+}
+
+async function requireAccessToken(): Promise<string> {
+  const { getVerifiedAccessToken } = await import("@/lib/auth/session");
+  const token = await getVerifiedAccessToken();
+  if (!token) throw new Error("Authenticated API read requires a verified Supabase access token.");
+  return token;
+}
+
+function toOperationsAlert(alert: ApiAlert | ApiAlertDetail, providers: readonly ApiProvider[], outlets: readonly ApiOutlet[]): OperationsAlert {
+  const provider = providers.find((item) => item.id === alert.providerId)?.code ?? currentProviderScope;
+  const outlet = outlets.find((item) => item.id === alert.outletId);
+  const type = toUiAlertType(alert.type);
+  const summary = `Alert evidence: ${alert.message.key}`;
+  const evidence = "evidenceSnapshots" in alert
+    ? alert.evidenceSnapshots.map((snapshot) => toEvidence(snapshot.snapshot, snapshot.kind))
+    : [toEvidence(alert.evidence, alert.message.key)];
+
+  return {
+    id: alert.id,
+    type,
+    severity: toUiSeverity(alert.severity),
+    status: toUiStatus(alert.status),
+    provider,
+    outletId: alert.outletId,
+    outletName: outlet?.name ?? `Outlet ${alert.outletId}`,
+    area: outlet?.area.name ?? "Authorized area",
+    summary,
+    occurredAt: alert.lastObservedAt,
+    freshness: toFreshness(alert.dataQuality),
+    dataQuality: toDataQuality(alert.dataQuality),
+    modelConfidence: alert.modelConfidence,
+    safeNextStep: "Review stored evidence before taking any operational action.",
+    recipient: `${provider} Operations`,
+    owner: alert.ownerUserId ?? "Unassigned",
+    linkedCase: null,
+    evidence,
+  };
+}
+
+function toEvidence(value: Record<string, unknown>, kind: string): AlertEvidence {
+  return {
+    detector: kind,
+    baseline: "Stored baseline",
+    observed: JSON.stringify(value),
+    threshold: "Review required",
+    window: "Recorded evidence window",
+    explanation: "Review API evidence before deciding next step.",
+  };
+}
+
+function toApiAlertType(type: AlertType): components["schemas"]["AlertType"] {
+  return type === "LIQUIDITY_PRESSURE" ? "provider_emoney_pressure" : type === "UNUSUAL_ACTIVITY" ? "unusual_activity_review" : type === "DATA_INCONSISTENCY" ? "data_quality_issue" : "combined_review";
+}
+
+function toUiAlertType(type: components["schemas"]["AlertType"]): AlertType {
+  return type === "provider_emoney_pressure" || type === "shared_cash_pressure" ? "LIQUIDITY_PRESSURE" : type === "unusual_activity_review" ? "UNUSUAL_ACTIVITY" : type === "data_quality_issue" ? "DATA_INCONSISTENCY" : "COMBINED_REVIEW";
+}
+
+function toUiSeverity(severity: ApiAlert["severity"]): Severity {
+  return severity === "low" ? "LOW" : severity === "moderate" ? "MEDIUM" : "HIGH";
+}
+
+function toUiStatus(status: ApiAlert["status"]): AlertStatus {
+  return status === "open" ? "active" : status === "acknowledged" ? "acknowledged" : status === "assigned" || status === "case_created" ? "escalated" : "resolved";
+}
+
+function toFreshness(quality: ApiAlert["dataQuality"]): OperationsAlert["freshness"] {
+  return quality === "healthy" ? "fresh" : quality === "degraded" ? "degraded" : "stale";
+}
+
+function toDataQuality(quality: ApiAlert["dataQuality"]): AlertDataQuality {
+  return quality === "healthy" ? "good" : quality === "degraded" ? "degraded" : "critical";
 }

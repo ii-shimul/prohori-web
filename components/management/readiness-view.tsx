@@ -4,8 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { formatDateTime } from "@/lib/formatters/dates";
 import { getManagementReadiness } from "@/lib/operations/readiness";
 
-export async function ReadinessView() {
-  const readiness = await getManagementReadiness();
+export async function ReadinessView({ source = "fixture" }: { source?: "fixture" | "api" }) {
+  const readiness = await getManagementReadiness(source);
   const items = [
     { label: "Operational Coverage", value: readiness.operationalCoverage, icon: BarChart3Icon },
     { label: "Forecast Confidence", value: readiness.forecastConfidence, icon: DatabaseZapIcon },

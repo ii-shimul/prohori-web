@@ -52,7 +52,13 @@ export async function AlertsView({ filters, action }: { filters: AlertFilters; a
   if (filters.view === "loading") return <PageLoading />;
   if (filters.view === "error") return <ErrorState description="Alerts could not load. Check API availability, then try again." correlationId="fixture-alerts-001" />;
 
-  const [locale, alerts] = await Promise.all([getLocale(), getAlerts(filters.view === "empty" ? { ...filters, severity: "LOW", dataQuality: "critical" } : filters)]);
+  const [locale, alerts] = await Promise.all([
+    getLocale(),
+    getAlerts(
+      filters.view === "empty" ? { ...filters, severity: "LOW", dataQuality: "critical" } : filters,
+      action === "/preview/operations/alerts" ? "fixture" : "api",
+    ),
+  ]);
 
   return (
     <section aria-labelledby="alerts-title" className="mx-auto max-w-6xl space-y-6">

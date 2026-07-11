@@ -8,7 +8,7 @@ export default async function OutletDetailPage({
 }: {
   params: Promise<{ outletId: string }>;
 }) {
-  const outlet = await getOutletDetail((await params).outletId);
+  const outlet = await getOutletDetail((await params).outletId, "api");
 
   if (!outlet) {
     notFound();

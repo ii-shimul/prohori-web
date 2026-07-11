@@ -1,3 +1,4 @@
+import type { components } from "@/lib/api/generated";
 import type { Freshness } from "@/lib/formatters/status";
 import type { Provider, RiskLevel } from "@/types/domain";
 
@@ -6,18 +7,18 @@ export type OutletRisk = {
   outletName: string;
   area: string;
   agentName: string;
-  provider: Provider;
-  limitingResource: "Provider A e-money" | "Shared physical cash";
-  forecastLowMinor: string;
-  forecastExpectedMinor: string;
-  forecastHighMinor: string;
+  provider: Provider | "SHARED";
+  limitingResource: string;
+  forecastLowMinor: string | null;
+  forecastExpectedMinor: string | null;
+  forecastHighMinor: string | null;
   thresholdEtaMinutes: number | null;
   risk: RiskLevel;
   confidence: number;
   freshness: Freshness;
-  lastActivityHours: number;
-  openCases: number;
-  highAlerts: number;
+  lastActivityHours: number | null;
+  openCases: number | null;
+  highAlerts: number | null;
 };
 
 export type OutletFilters = {
@@ -31,12 +32,18 @@ export type OutletFilters = {
   view: "default" | "loading" | "empty" | "error";
 };
 
+type OutletSource = "fixture" | "api";
+type ApiOutlet = components["schemas"]["Outlet"];
+type ApiProvider = components["schemas"]["Provider"];
+type ApiHealth = components["schemas"]["OutletHealth"];
+type ApiForecastRun = components["schemas"]["ForecastRun"];
+
 export type OutletOverview = {
   kpis: {
     outletsUnderPressure: number;
-    highAlerts: number;
+    highAlerts: number | null;
     staleFeeds: number;
-    openCases: number;
+    openCases: number | null;
   };
   items: OutletRisk[];
   total: number;
@@ -184,14 +191,23 @@ export function parseOutletFilters(searchParams: Record<string, string | string[
   };
 }
 
-export function getOutletFilterOptions() {
+export async function getOutletFilterOptions(source: OutletSource = "fixture") {
+  if (source === "api") {
+    const { apiRequest } = await import("@/lib/api/client");
+    const accessToken = await requireAccessToken();
+    const outlets = await apiRequest<readonly ApiOutlet[]>("outlets", accessToken);
+    return { agents: [], areas: [...new Set(outlets.map((item) => item.area.name))] };
+  }
+
   return {
     agents: [...new Set(scopedFixtureOutlets.map((item) => item.agentName))],
     areas: [...new Set(scopedFixtureOutlets.map((item) => item.area))],
   };
 }
 
-export async function getOutletOverview(filters: OutletFilters): Promise<OutletOverview> {
+export async function getOutletOverview(filters: OutletFilters, source: OutletSource = "fixture"): Promise<OutletOverview> {
+  if (source === "api") return getApiOutletOverview(filters);
+
   const timeLimitHours = filters.time === "4h" ? 4 : filters.time === "24h" ? 24 : 168;
   const filtered = scopedFixtureOutlets
     .filter((item) => item.provider === currentProviderScope)
@@ -200,7 +216,7 @@ export async function getOutletOverview(filters: OutletFilters): Promise<OutletO
     .filter((item) => filters.area === "all" || item.area === filters.area)
     .filter((item) => filters.risk === "all" || item.risk === filters.risk)
     .filter((item) => filters.freshness === "all" || item.freshness === filters.freshness)
-    .filter((item) => item.lastActivityHours <= timeLimitHours)
+    .filter((item) => item.lastActivityHours === null || item.lastActivityHours <= timeLimitHours)
     .toSorted((left, right) => {
       const riskOrder: Record<RiskLevel, number> = { high: 0, medium: 1, low: 2 };
       return (
@@ -216,12 +232,100 @@ export async function getOutletOverview(filters: OutletFilters): Promise<OutletO
   return {
     kpis: {
       outletsUnderPressure: scopedFixtureOutlets.filter((item) => item.risk === "high").length,
-      highAlerts: scopedFixtureOutlets.reduce((total, item) => total + item.highAlerts, 0),
+      highAlerts: scopedFixtureOutlets.reduce((total, item) => total + (item.highAlerts ?? 0), 0),
       staleFeeds: scopedFixtureOutlets.filter((item) => item.freshness === "stale").length,
-      openCases: scopedFixtureOutlets.reduce((total, item) => total + item.openCases, 0),
+      openCases: scopedFixtureOutlets.reduce((total, item) => total + (item.openCases ?? 0), 0),
     },
     items: filtered.slice(start, start + PAGE_SIZE),
     total: filtered.length,
     pageCount,
   };
+}
+
+async function getApiOutletOverview(filters: OutletFilters): Promise<OutletOverview> {
+  const [{ apiRequest }, { getVerifiedAccessToken }] = await Promise.all([
+    import("@/lib/api/client"),
+    import("@/lib/auth/session"),
+  ]);
+  const accessToken = await getVerifiedAccessToken();
+  if (!accessToken) throw new Error("Authenticated API read requires a verified Supabase access token.");
+
+  const [outlets, providers] = await Promise.all([
+    apiRequest<readonly ApiOutlet[]>("outlets", accessToken),
+    apiRequest<readonly ApiProvider[]>("providers", accessToken),
+  ]);
+  const providerById = new Map(providers.map((provider) => [provider.id, provider.code]));
+  const items = await Promise.all(outlets.map(async (outlet) => {
+    const [health, forecast] = await Promise.all([
+      apiRequest<ApiHealth>(`outlets/${outlet.id}/health`, accessToken),
+      apiRequest<ApiForecastRun>(`outlets/${outlet.id}/forecasts`, accessToken),
+    ]);
+    return toOutletRisk(outlet, health, forecast, providerById);
+  }));
+
+  const filtered = items
+    .filter((item) => filters.provider === "all" || item.provider === filters.provider)
+    .filter((item) => filters.area === "all" || item.area === filters.area)
+    .filter((item) => filters.risk === "all" || item.risk === filters.risk)
+    .filter((item) => filters.freshness === "all" || item.freshness === filters.freshness)
+    .toSorted((left, right) => riskOrder(right) - riskOrder(left) || (left.thresholdEtaMinutes ?? Infinity) - (right.thresholdEtaMinutes ?? Infinity));
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const page = Math.min(filters.page, pageCount);
+  const start = (page - 1) * PAGE_SIZE;
+
+  return {
+    kpis: {
+      outletsUnderPressure: items.filter((item) => item.risk === "high").length,
+      highAlerts: null,
+      staleFeeds: items.filter((item) => item.freshness === "stale").length,
+      openCases: null,
+    },
+    items: filtered.slice(start, start + PAGE_SIZE),
+    total: filtered.length,
+    pageCount,
+  };
+}
+
+function toOutletRisk(outlet: ApiOutlet, health: ApiHealth, forecast: ApiForecastRun, providerById: Map<string, Provider>): OutletRisk {
+  const limitingResource = health.limitingResource;
+  const resource = forecast.resources.find((item) => item.resource === limitingResource?.resource && item.providerId === limitingResource?.providerId) ?? forecast.resources[0];
+  const point = resource?.points.at(-1);
+  const provider = limitingResource?.providerId ? providerById.get(limitingResource.providerId) ?? "SHARED" : "SHARED";
+  return {
+    id: outlet.id,
+    outletName: outlet.name,
+    area: outlet.area.name,
+    agentName: "Not provided by API",
+    provider,
+    limitingResource: limitingResource?.resource === "provider_efloat" ? "Provider e-money" : "Shared physical cash",
+    forecastLowMinor: point?.projectedLowMinor ?? null,
+    forecastExpectedMinor: point?.projectedMidMinor ?? null,
+    forecastHighMinor: point?.projectedHighMinor ?? null,
+    thresholdEtaMinutes: point?.reserveEtaMinutes ?? null,
+    risk: toRisk(point?.riskBand),
+    confidence: health.modelConfidence,
+    freshness: toFreshness(health.dataQuality),
+    lastActivityHours: null,
+    openCases: null,
+    highAlerts: null,
+  };
+}
+
+function riskOrder(item: OutletRisk): number {
+  return item.risk === "high" ? 3 : item.risk === "medium" ? 2 : 1;
+}
+
+function toRisk(value: ApiForecastRun["resources"][number]["points"][number]["riskBand"] | undefined): RiskLevel {
+  return value === "high" || value === "critical" ? "high" : value === "moderate" ? "medium" : "low";
+}
+
+function toFreshness(value: ApiHealth["dataQuality"]): Freshness {
+  return value === "healthy" ? "fresh" : value === "degraded" ? "degraded" : "stale";
+}
+
+async function requireAccessToken(): Promise<string> {
+  const { getVerifiedAccessToken } = await import("@/lib/auth/session");
+  const token = await getVerifiedAccessToken();
+  if (!token) throw new Error("Authenticated API read requires a verified Supabase access token.");
+  return token;
 }

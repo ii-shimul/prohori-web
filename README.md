@@ -5,11 +5,12 @@ Next.js web client for synthetic multi-provider operations review. Supabase hand
 ## Setup
 
 1. Copy `.env.example` to `.env.local`.
-2. Obtain values and seeded test accounts from API owner.
-3. Run `npm install`.
-4. Run `npm run dev`.
-5. Set `NEXT_PUBLIC_PROHORI_API_URL=https://prohori-api.onrender.com/api/v1` in `.env.local`.
-6. Open `http://localhost:3001`.
+2. Set Supabase project URL and publishable key in `.env.local`.
+3. Keep `NEXT_PUBLIC_PROHORI_API_URL=https://prohori-api.onrender.com/api/v1` for remote API use.
+4. Run `npm install`.
+5. Run `npm run check:remote-api` to verify remote API health.
+6. Run `npm run dev`.
+7. Open `http://localhost:3001`.
 
 ## Checks
 
@@ -21,15 +22,17 @@ npm run build
 
 `npm run test` runs deterministic fixture smoke tests for Provider A scope, dashboard filters, Scenarios A–D, simulation routes, auth guardrail source, and no-action UI boundary. It does not claim a live Supabase/API end-to-end pass.
 
-Live verification remains blocked until API owner supplies: Supabase test credentials, API base URL, versioned OpenAPI contract, `/me` role response, domain endpoints, and scenario control endpoints. Record any live failure with route, role, scenario, API response/error code, and correlation ID.
+`npm run check:remote-api` verifies `${NEXT_PUBLIC_PROHORI_API_URL}/health/live` returns HTTP 200 with `{ "status": "ok" }`. It does not require local Supabase, Docker, or a local API process.
+
+Live auth/domain verification still requires Supabase test credentials, a valid `/me` role response, domain endpoints, and scenario control endpoints. Record any live failure with route, role, scenario, API response/error code, and correlation ID.
 
 ## Contract status
 
-Authoritative backend contract is `../prohori-api/openapi.yaml`, version `1.0.0`. Phase 1 copies it to `openapi.yaml`, derives DTOs from it, and adds version parity validation. Until then, typed fixture data remains isolated from production API integration.
+Authoritative backend contract is `../prohori-api/openapi.yaml`, version `1.0.0`. `npm run check:api-contract` verifies generated types and contract version; `npm run generate:api` refreshes them. Current contract still types `CurrentUser.memberships` and `assignments` as unstructured objects, so role projection remains a contract gap for Phase 1. Until API reads are integrated, typed fixture data remains isolated from production API integration.
 
 ## Authentication
 
-Supabase SSR authentication uses browser/server clients and Next.js `proxy.ts` cookie refresh. Add the Supabase URL, publishable key, and seeded user credentials before testing sign-in. In Render API environment variables, set `CORS_ORIGINS` to a comma-separated allowlist containing `http://localhost:3001` and deployed web origin. Do not use `*`.
+Supabase SSR authentication uses server clients and Next.js `proxy.ts` cookie refresh. Add the Supabase URL, publishable key, and seeded user credentials before testing sign-in. In Render API environment variables, set `CORS_ORIGINS` to a comma-separated allowlist containing `http://localhost:3001` and deployed web origin. Do not use `*`.
 
 - `/` redirects to `/login` without verified claims and `/dashboard` with verified claims.
 - Dashboard routes fail closed when session or Supabase configuration is missing.

@@ -22,11 +22,12 @@ export async function OperationsView({
     return <ErrorState description="Outlet data could not load. Check API availability, then try again." correlationId="fixture-outlets-001" />;
   }
 
-  const [overview, filterOptions] = await Promise.all([
-    getOutletOverview(filters.view === "empty" ? { ...filters, risk: "high", freshness: "stale" } : filters),
-    Promise.resolve(getOutletFilterOptions()),
-  ]);
   const filterAction = action ?? (variant === "dashboard" ? "/dashboard" : "/outlets");
+  const source = filterAction === "/preview/operations" ? "fixture" : "api";
+  const [overview, filterOptions] = await Promise.all([
+    getOutletOverview(filters.view === "empty" ? { ...filters, risk: "high", freshness: "stale" } : filters, source),
+    getOutletFilterOptions(source),
+  ]);
 
   return (
     <section aria-labelledby="page-title" className="mx-auto max-w-7xl space-y-6">
@@ -42,7 +43,7 @@ export async function OperationsView({
               : "Filter authorized outlets by risk, freshness, owner, area, and activity window."}
           </p>
         </div>
-        <p className="text-sm text-muted-foreground">Fixture mode · Provider A scope</p>
+        <p className="text-sm text-muted-foreground">{source === "fixture" ? "Fixture mode · Provider A scope" : "Live API · Authorized scope"}</p>
       </header>
       <KpiGrid kpis={overview.kpis} />
       <FilterBar action={filterAction} agents={filterOptions.agents} areas={filterOptions.areas} filters={filters} />

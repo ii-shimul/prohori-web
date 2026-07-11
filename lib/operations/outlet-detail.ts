@@ -1,3 +1,4 @@
+import type { components } from "@/lib/api/generated";
 import type { Freshness } from "@/lib/formatters/status";
 import type { Provider, RiskLevel } from "@/types/domain";
 
@@ -9,7 +10,7 @@ export type OutletTransaction = {
   type: "CASH_IN" | "CASH_OUT";
   provider: Provider;
   amountMinor: string;
-  status: "SETTLED" | "PENDING";
+  status: "PENDING" | "SETTLED" | "FAILED" | "REVERSED";
 };
 
 export type ForecastHorizon = {
@@ -23,18 +24,18 @@ export type OutletDetail = {
   id: string;
   outletName: string;
   area: string;
-  agentName: string;
-  provider: Provider;
+  agentName: string | null;
+  provider: Provider | "SHARED";
   freshness: Freshness;
   dataQuality: DataQuality;
   updatedAt: string;
-  sharedCashMinor: string;
-  providerEfloatMinor: string;
-  limitingResource: "Provider A e-money" | "Shared physical cash";
+  sharedCashMinor: string | null;
+  providerEfloatMinor: string | null;
+  limitingResource: string;
   risk: RiskLevel;
   thresholdEtaMinutes: number | null;
   confidence: number;
-  safeNextStep: string;
+  safeNextStep: string | null;
   forecast: ForecastHorizon[] | null;
   transactions: OutletTransaction[];
 };
@@ -94,6 +95,102 @@ const fixtureOutletDetails: Readonly<Record<string, OutletDetail>> = {
   },
 };
 
-export async function getOutletDetail(outletId: string): Promise<OutletDetail | null> {
+type OutletDetailSource = "fixture" | "api";
+type ApiOutlet = components["schemas"]["Outlet"];
+type ApiProvider = components["schemas"]["Provider"];
+type ApiHealth = components["schemas"]["OutletHealth"];
+type ApiBalances = components["schemas"]["OutletBalances"];
+type ApiForecastRun = components["schemas"]["ForecastRun"];
+type ApiQuality = components["schemas"]["OutletDataQuality"];
+type ApiTransactions = components["schemas"]["TransactionPage"];
+
+export async function getOutletDetail(outletId: string, source: OutletDetailSource = "fixture"): Promise<OutletDetail | null> {
+  if (source === "api") {
+    const [{ apiRequest }, { getVerifiedAccessToken }] = await Promise.all([
+      import("@/lib/api/client"),
+      import("@/lib/auth/session"),
+    ]);
+    const accessToken = await getVerifiedAccessToken();
+    if (!accessToken) throw new Error("Authenticated API read requires a verified Supabase access token.");
+
+    try {
+      const [outletList, providers, health, balances, forecasts, quality, transactions] = await Promise.all([
+        apiRequest<readonly ApiOutlet[]>("outlets", accessToken),
+        apiRequest<readonly ApiProvider[]>("providers", accessToken),
+        apiRequest<ApiHealth>(`outlets/${encodeURIComponent(outletId)}/health`, accessToken),
+        apiRequest<ApiBalances>(`outlets/${encodeURIComponent(outletId)}/balances`, accessToken),
+        apiRequest<ApiForecastRun>(`outlets/${encodeURIComponent(outletId)}/forecasts`, accessToken),
+        apiRequest<ApiQuality>(`outlets/${encodeURIComponent(outletId)}/data-quality`, accessToken),
+        apiRequest<ApiTransactions>(`outlets/${encodeURIComponent(outletId)}/transactions`, accessToken),
+      ]);
+      const outlet = outletList.find((item) => item.id === outletId);
+      if (!outlet) return null;
+      return toOutletDetail(outlet, providers, health, balances, forecasts, quality, transactions);
+    } catch (error) {
+      if (error instanceof Error && "status" in error && error.status === 404) return null;
+      throw error;
+    }
+  }
+
   return fixtureOutletDetails[outletId] ?? null;
+}
+
+function toOutletDetail(
+  outlet: ApiOutlet,
+  providers: readonly ApiProvider[],
+  health: ApiHealth,
+  balances: ApiBalances,
+  forecasts: ApiForecastRun,
+  quality: ApiQuality,
+  transactions: ApiTransactions,
+): OutletDetail {
+  const providerById = new Map(providers.map((provider) => [provider.id, provider.code]));
+  const limiting = health.limitingResource;
+  const provider = limiting?.providerId ? providerById.get(limiting.providerId) ?? "SHARED" : "SHARED";
+  const resource = forecasts.resources.find((item) => item.resource === limiting?.resource && item.providerId === limiting?.providerId) ?? forecasts.resources[0];
+  const lastPoint = resource?.points.at(-1);
+
+  return {
+    id: outlet.id,
+    outletName: outlet.name,
+    area: outlet.area.name,
+    agentName: null,
+    provider,
+    freshness: toFreshness(quality.dataQuality),
+    dataQuality: toDataQuality(quality.dataQuality),
+    updatedAt: forecasts.generatedAt,
+    sharedCashMinor: balances.sharedCash.amountMinor,
+    providerEfloatMinor: balances.providerEMoney.find((item) => item.provider.code === provider)?.amountMinor ?? null,
+    limitingResource: limiting?.resource === "provider_efloat" ? `${provider} e-money` : limiting?.resource === "shared_cash" ? "Shared physical cash" : "Not provided by API",
+    risk: toRisk(lastPoint?.riskBand),
+    thresholdEtaMinutes: lastPoint?.reserveEtaMinutes ?? null,
+    confidence: health.modelConfidence,
+    safeNextStep: null,
+    forecast: resource?.points.map((point) => ({
+      label: point.horizonMinutes === 30 ? "30 min" : point.horizonMinutes === 60 ? "1 hour" : point.horizonMinutes === 120 ? "2 hours" : "4 hours",
+      lowMinor: point.projectedLowMinor,
+      expectedMinor: point.projectedMidMinor,
+      highMinor: point.projectedHighMinor,
+    })) ?? null,
+    transactions: transactions.items.map((transaction) => ({
+      id: transaction.id,
+      occurredAt: transaction.occurredAt,
+      type: transaction.type,
+      provider: transaction.provider.code,
+      amountMinor: transaction.amountMinor,
+      status: transaction.lifecycle,
+    })),
+  };
+}
+
+function toFreshness(value: ApiQuality["dataQuality"]): Freshness {
+  return value === "healthy" ? "fresh" : value === "degraded" ? "degraded" : "stale";
+}
+
+function toDataQuality(value: ApiQuality["dataQuality"]): DataQuality {
+  return value === "healthy" ? "good" : value === "degraded" ? "degraded" : "critical";
+}
+
+function toRisk(value: ApiForecastRun["resources"][number]["points"][number]["riskBand"] | undefined): RiskLevel {
+  return value === "high" || value === "critical" ? "high" : value === "moderate" ? "medium" : "low";
 }

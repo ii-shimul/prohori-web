@@ -37,7 +37,7 @@ export function OutletDetailView({
             <h1 id="outlet-title" className="mt-2 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
               {outlet.outletName}
             </h1>
-            <p className="mt-2 text-pretty text-muted-foreground">{outlet.agentName} · {outlet.area} · {outlet.provider.replace("_", " ")}</p>
+            <p className="mt-2 text-pretty text-muted-foreground">{outlet.agentName ?? "Agent not provided by API"} · {outlet.area} · {outlet.provider.replace("_", " ")}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <FreshnessBadge freshness={outlet.freshness} />
@@ -63,7 +63,7 @@ export function OutletDetailView({
               </div>
             </CardHeader>
             <CardContent>
-              <p className="font-mono text-3xl font-semibold tabular-nums">{formatBdtMinor(outlet.sharedCashMinor)}</p>
+              <p className="font-mono text-3xl font-semibold tabular-nums">{outlet.sharedCashMinor === null ? "Not provided by API" : formatBdtMinor(outlet.sharedCashMinor)}</p>
               {outlet.limitingResource === "Shared physical cash" ? <p className="mt-3 text-sm font-medium text-destructive">Current limiting resource</p> : null}
             </CardContent>
           </Card>
@@ -71,15 +71,15 @@ export function OutletDetailView({
             <CardHeader>
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <CardTitle>Provider A E-Money</CardTitle>
+                  <CardTitle>{outlet.provider === "SHARED" ? "Provider E-Money" : `${outlet.provider.replace("_", " ")} E-Money`}</CardTitle>
                   <CardDescription>Provider-scoped balance. Not combined with physical cash.</CardDescription>
                 </div>
                 <WalletCardsIcon aria-hidden="true" className="size-6 text-secondary" />
               </div>
             </CardHeader>
             <CardContent>
-              <p className="font-mono text-3xl font-semibold tabular-nums">{formatBdtMinor(outlet.providerEfloatMinor)}</p>
-              {outlet.limitingResource === "Provider A e-money" ? <p className="mt-3 text-sm font-medium text-destructive">Current limiting resource</p> : null}
+              <p className="font-mono text-3xl font-semibold tabular-nums">{outlet.providerEfloatMinor === null ? "Not provided by API" : formatBdtMinor(outlet.providerEfloatMinor)}</p>
+              {outlet.limitingResource.endsWith("e-money") ? <p className="mt-3 text-sm font-medium text-destructive">Current limiting resource</p> : null}
             </CardContent>
           </Card>
         </div>
@@ -105,7 +105,7 @@ export function OutletDetailView({
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-sm font-medium">Safe next step: {outlet.safeNextStep}</p>
+              <p className="text-sm font-medium">{outlet.safeNextStep ?? "No safe next step supplied by API."}</p>
             </CardContent>
           </Card>
         ) : (
@@ -142,7 +142,7 @@ export function OutletDetailView({
             </div>
           </div>
         </CardHeader>
-        <CardContent><p className="text-sm font-medium">{outlet.safeNextStep}</p></CardContent>
+        <CardContent><p className="text-sm font-medium">{outlet.safeNextStep ?? "No safe next step supplied by API."}</p></CardContent>
       </Card>
 
       <section aria-labelledby="transactions-title" className="space-y-3">

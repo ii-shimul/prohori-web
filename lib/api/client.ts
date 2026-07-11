@@ -6,6 +6,7 @@ const API_REQUEST_TIMEOUT_MS = 10_000;
 export type ApiRequestInit = RequestInit & {
   correlationId?: string;
   idempotencyKey?: string;
+  query?: Record<string, string | number | boolean | undefined>;
 };
 
 export async function apiRequest<T>(
@@ -19,8 +20,12 @@ export async function apiRequest<T>(
     throw new Error("NEXT_PUBLIC_PROHORI_API_URL is not configured.");
   }
 
-  const { correlationId, idempotencyKey, headers: requestHeaders, ...requestInit } = init;
+  const { correlationId, idempotencyKey, query, headers: requestHeaders, ...requestInit } = init;
   const requestCorrelationId = correlationId ?? createCorrelationId();
+  const requestUrl = buildApiUrl(path, apiBaseUrl);
+  Object.entries(query ?? {}).forEach(([key, value]) => {
+    if (value !== undefined) requestUrl.searchParams.set(key, String(value));
+  });
   const headers = new Headers(requestHeaders);
 
   headers.set("Accept", "application/json");
@@ -42,7 +47,7 @@ export async function apiRequest<T>(
 
   let response: Response;
   try {
-    response = await fetch(buildApiUrl(path, apiBaseUrl), {
+    response = await fetch(requestUrl, {
       ...requestInit,
       headers,
       signal: controller.signal,

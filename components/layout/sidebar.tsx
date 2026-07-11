@@ -38,7 +38,8 @@ const navigationItems: readonly NavigationItem[] = [
 ];
 
 function visibleItems(roles: readonly UserRole[]) {
-  return navigationItems.filter((item) => item.roles.some((role) => roles.includes(role)));
+  const roleSet = new Set(roles);
+  return navigationItems.filter((item) => item.roles.some((role) => roleSet.has(role)));
 }
 
 export function Sidebar({ roles }: { roles: readonly UserRole[] }) {

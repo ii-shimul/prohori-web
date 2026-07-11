@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "check:remote-api": "node scripts/check-remote-api.mjs",
     "test": "node --test tests/*.test.mjs",
     "generate:api": "openapi-typescript ../prohori-api/openapi.yaml --immutable --output lib/api/generated.ts && node scripts/sync-api-contract-version.mjs",
     "check:api-contract": "openapi-typescript ../prohori-api/openapi.yaml --immutable --output lib/api/generated.ts --check && node scripts/check-api-contract-version.mjs"

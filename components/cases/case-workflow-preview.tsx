@@ -39,7 +39,7 @@ function CaseWorkflowDraft({ caseRecord }: { caseRecord: CaseRecord }) {
   const [owner, setOwner] = useState(() => caseRecord.owner);
   const [notes, setNotes] = useState(() => caseRecord.notes);
   const [timeline, setTimeline] = useState(() => caseRecord.timeline);
-  const [version, setVersion] = useState(1);
+  const version = useRef(1);
   const [noteDraft, setNoteDraft] = useState("");
   const [resolutionCode, setResolutionCode] = useState("VERIFIED_NORMAL");
   const [resolutionSummary, setResolutionSummary] = useState("");
@@ -55,17 +55,17 @@ function CaseWorkflowDraft({ caseRecord }: { caseRecord: CaseRecord }) {
   }, [noteDraft, resolutionSummary]);
 
   function runCommand(action: string, nextState: CaseState | null, summary: string) {
-    const idempotencyKey = `${caseRecord.id}:${version}:${action}`;
+    const idempotencyKey = `${caseRecord.id}:${version.current}:${action}`;
     if (executedKeys.current.has(idempotencyKey)) {
       setMessage("Duplicate preview command ignored.");
       return;
     }
 
     executedKeys.current.add(idempotencyKey);
-    const event = eventFor(action, state, nextState, summary, version);
+    const event = eventFor(action, state, nextState, summary, version.current);
     setTimeline((current) => [...current, event]);
     if (nextState) setState(nextState);
-    setVersion((current) => current + 1);
+    version.current += 1;
     setMessage(`${action} recorded. Idempotency key: ${idempotencyKey}`);
   }
 
@@ -75,7 +75,7 @@ function CaseWorkflowDraft({ caseRecord }: { caseRecord: CaseRecord }) {
       setMessage("Enter a scoped note before saving.");
       return;
     }
-    setNotes((current) => [...current, { id: `fixture-note-${version}`, at: new Date().toISOString(), author: "Preview Operator", body }]);
+    setNotes((current) => [...current, { id: `fixture-note-${version.current}`, at: new Date().toISOString(), author: "Preview Operator", body }]);
     runCommand("Scoped note added", null, "Case note recorded for authorized provider scope.");
     setNoteDraft("");
   }

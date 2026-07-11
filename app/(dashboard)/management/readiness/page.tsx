@@ -4,5 +4,5 @@ import { canViewDashboardRoute } from "@/lib/auth/roles";
 
 export default async function ReadinessPage() {
   if (!(await canViewDashboardRoute(["PLATFORM_MANAGEMENT", "DEMO_ADMIN"]))) return <UnauthorizedState />;
-  return <ReadinessView />;
+  return <ReadinessView source="api" />;
 }

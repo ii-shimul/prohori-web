@@ -4,9 +4,9 @@ import { Card, CardContent } from "@/components/ui/card";
 
 type Kpis = {
   outletsUnderPressure: number;
-  highAlerts: number;
+  highAlerts: number | null;
   staleFeeds: number;
-  openCases: number;
+  openCases: number | null;
 };
 
 const kpiDefinitions = [
@@ -24,7 +24,7 @@ export function KpiGrid({ kpis }: { kpis: Kpis }) {
           <CardContent className="flex items-start justify-between gap-3 pt-4">
             <div className="min-w-0">
               <p className="text-sm text-muted-foreground">{label}</p>
-              <p className="mt-2 font-mono text-3xl font-semibold tabular-nums">{kpis[key]}</p>
+              <p className="mt-2 font-mono text-3xl font-semibold tabular-nums">{kpis[key] ?? "—"}</p>
             </div>
             <Icon aria-hidden="true" className={`size-5 shrink-0 ${tone}`} />
           </CardContent>

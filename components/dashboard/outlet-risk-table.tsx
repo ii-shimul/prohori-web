@@ -85,8 +85,8 @@ export function OutletRiskTable({
                     <p className="mt-1 text-xs text-muted-foreground">{outlet.provider.replace("_", " ")}</p>
                   </TableCell>
                   <TableCell className="min-w-52 whitespace-normal font-mono text-xs tabular-nums">
-                    <span>{formatBdtMinor(outlet.forecastLowMinor)} – {formatBdtMinor(outlet.forecastHighMinor)}</span>
-                    <span className="mt-1 block text-muted-foreground">Expected {formatBdtMinor(outlet.forecastExpectedMinor)}</span>
+                    <span>{outlet.forecastLowMinor === null || outlet.forecastHighMinor === null ? "Not provided by API" : `${formatBdtMinor(outlet.forecastLowMinor)} – ${formatBdtMinor(outlet.forecastHighMinor)}`}</span>
+                    <span className="mt-1 block text-muted-foreground">{outlet.forecastExpectedMinor === null ? "Expected value not provided" : `Expected ${formatBdtMinor(outlet.forecastExpectedMinor)}`}</span>
                   </TableCell>
                   <TableCell className="font-mono tabular-nums">
                     {outlet.thresholdEtaMinutes === null ? "Not projected" : `${outlet.thresholdEtaMinutes} min`}

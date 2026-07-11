@@ -1,17 +1,17 @@
 export type FeedFreshness = "fresh" | "degraded" | "stale";
-export type FeedIssueKind = "MISSING_FIELDS" | "SEQUENCE_GAP" | "DUPLICATE_REPLAY" | "OUT_OF_ORDER" | "MISMATCH" | "CONFLICT";
+export type FeedIssueKind = string;
 
 export type FeedHealthIncident = {
   id: string;
   source: string;
-  freshness: FeedFreshness;
-  lag: string;
+  freshness: FeedFreshness | null;
+  lag: string | null;
   issue: FeedIssueKind;
   affectedScope: string;
   observedAt: string;
-  confidenceEffect: string;
+  confidenceEffect: string | null;
   detail: string;
-  safeNextStep: string;
+  safeNextStep: string | null;
 };
 
 export type FeedHealthFilters = { view: "default" | "loading" | "empty" | "error" };
@@ -64,6 +64,53 @@ export function parseFeedHealthFilters(searchParams: Record<string, string | str
   return { view: view === "loading" || view === "empty" || view === "error" ? view : "default" };
 }
 
-export async function getFeedHealthIncidents(): Promise<readonly FeedHealthIncident[]> {
+type FeedHealthSource = "fixture" | "api";
+type ApiFeedHealth = import("@/lib/api/generated").components["schemas"]["FeedHealthPage"];
+type ApiIncidentPage = import("@/lib/api/generated").components["schemas"]["DataQualityIncidentPage"];
+type ApiProvider = import("@/lib/api/generated").components["schemas"]["Provider"];
+type ApiOutlet = import("@/lib/api/generated").components["schemas"]["Outlet"];
+
+export async function getFeedHealthIncidents(source: FeedHealthSource = "fixture"): Promise<readonly FeedHealthIncident[]> {
+  if (source === "api") {
+    const { apiRequest } = await import("@/lib/api/client");
+    const accessToken = await requireAccessToken();
+    const [feedHealth, incidents, providers, outlets] = await Promise.all([
+      apiRequest<ApiFeedHealth>("feed-health", accessToken),
+      apiRequest<ApiIncidentPage>("data-quality/incidents", accessToken),
+      apiRequest<readonly ApiProvider[]>("providers", accessToken),
+      apiRequest<readonly ApiOutlet[]>("outlets", accessToken),
+    ]);
+    const providerById = new Map(providers.map((provider) => [provider.id, provider]));
+    const outletById = new Map(outlets.map((outlet) => [outlet.id, outlet]));
+    return incidents.items.map((incident) => {
+      const provider = incident.providerId ? providerById.get(incident.providerId) : undefined;
+      const outlet = incident.outletId ? outletById.get(incident.outletId) : undefined;
+      const health = incident.providerId ? feedHealth.items.find((item) => item.providerId === incident.providerId) : undefined;
+      return {
+        id: incident.id,
+        source: provider?.name ?? (incident.providerId ? `Provider ${incident.providerId}` : "Provider not provided by API"),
+        freshness: health ? toFreshness(health.dataQuality) : null,
+        lag: null,
+        issue: incident.category,
+        affectedScope: outlet?.name ?? (incident.outletId ? `Outlet ${incident.outletId}` : "Scope not provided by API"),
+        observedAt: incident.detectedAt,
+        confidenceEffect: null,
+        detail: JSON.stringify(incident.details),
+        safeNextStep: null,
+      };
+    });
+  }
+
   return fixtureIncidents;
+}
+
+function toFreshness(value: ApiFeedHealth["items"][number]["dataQuality"]): FeedFreshness {
+  return value === "healthy" ? "fresh" : value === "degraded" ? "degraded" : "stale";
+}
+
+async function requireAccessToken(): Promise<string> {
+  const { getVerifiedAccessToken } = await import("@/lib/auth/session");
+  const token = await getVerifiedAccessToken();
+  if (!token) throw new Error("Authenticated API read requires a verified Supabase access token.");
+  return token;
 }

@@ -25,5 +25,6 @@ export function getApiRoles(user: RoleSource): readonly UserRole[] {
 
 export function hasAnyApiRole(user: RoleSource, allowedRoles: readonly UserRole[]): boolean {
   const roles = getApiRoles(user);
-  return allowedRoles.some((role) => roles.includes(role));
+  const roleSet = new Set(roles);
+  return allowedRoles.some((role) => roleSet.has(role));
 }

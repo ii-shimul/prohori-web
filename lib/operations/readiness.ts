@@ -18,6 +18,26 @@ const fixtureReadiness: ManagementReadiness = {
   note: "Aggregate synthetic readiness only. No provider, outlet, customer, balance, or competitor detail is rendered.",
 };
 
-export async function getManagementReadiness(): Promise<ManagementReadiness> {
+type ReadinessSource = "fixture" | "api";
+type ApiReadiness = import("@/lib/api/generated").components["schemas"]["ManagementReadiness"];
+
+export async function getManagementReadiness(source: ReadinessSource = "fixture"): Promise<ManagementReadiness> {
+  if (source === "api") {
+    const { apiRequest } = await import("@/lib/api/client");
+    const { getVerifiedAccessToken } = await import("@/lib/auth/session");
+    const accessToken = await getVerifiedAccessToken();
+    if (!accessToken) throw new Error("Authenticated API read requires a verified Supabase access token.");
+    const readiness = await apiRequest<ApiReadiness>("management/readiness", accessToken);
+    return {
+      asOf: readiness.generatedAt,
+      operationalCoverage: `${readiness.providersReporting} providers reporting`,
+      forecastConfidence: "Not provided by API",
+      dataQuality: `${readiness.providersDegraded} degraded · ${readiness.providersUnreliable} unreliable providers`,
+      openReviewQueue: readiness.unresolvedOutletCount,
+      criticalIncidents: readiness.activeIncidentCount,
+      note: "Aggregate API readiness only. Backend redaction boundary excludes provider, outlet, transaction, balance, and incident detail.",
+    };
+  }
+
   return fixtureReadiness;
 }
