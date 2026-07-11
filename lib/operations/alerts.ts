@@ -1,0 +1,167 @@
+import type { AlertType, Provider, Severity } from "@/types/domain";
+
+export type AlertStatus = "active" | "acknowledged" | "escalated" | "resolved" | "closed";
+export type AlertDataQuality = "good" | "degraded" | "critical";
+
+export type AlertEvidence = {
+  detector: string;
+  baseline: string;
+  observed: string;
+  threshold: string;
+  window: string;
+  explanation: string;
+};
+
+export type OperationsAlert = {
+  id: string;
+  type: AlertType;
+  severity: Severity;
+  status: AlertStatus;
+  provider: Provider;
+  outletId: string;
+  outletName: string;
+  area: string;
+  summary: string;
+  occurredAt: string;
+  freshness: "fresh" | "degraded" | "stale";
+  dataQuality: AlertDataQuality;
+  modelConfidence: number;
+  safeNextStep: string;
+  recipient: string;
+  owner: string;
+  linkedCase: string | null;
+  evidence: AlertEvidence[];
+};
+
+export type AlertFilters = {
+  severity: Severity | "all";
+  status: AlertStatus | "all";
+  type: AlertType | "all";
+  dataQuality: AlertDataQuality | "all";
+  view: "default" | "loading" | "empty" | "error";
+};
+
+const currentProviderScope: Provider = "PROVIDER_A";
+
+const fixtureAlerts: readonly OperationsAlert[] = [
+  {
+    id: "alert-b-liquidity",
+    type: "LIQUIDITY_PRESSURE",
+    severity: "HIGH",
+    status: "active",
+    provider: "PROVIDER_A",
+    outletId: "dha-017",
+    outletName: "Dhanmondi 27 Agent Point",
+    area: "Dhaka North",
+    summary: "Provider A e-money may cross its reserve threshold within 38 minutes.",
+    occurredAt: "2026-07-11T09:32:00.000Z",
+    freshness: "fresh",
+    dataQuality: "good",
+    modelConfidence: 0.86,
+    safeNextStep: "Verify demand context and contact authorized operations.",
+    recipient: "Provider A Operations",
+    owner: "Unassigned",
+    linkedCase: "CASE-204",
+    evidence: [
+      { detector: "Reserve threshold forecast", baseline: "৳2,900", observed: "৳1,950", threshold: "৳1,000", window: "Next 4 hours", explanation: "Demand may normalize after current peak period." },
+    ],
+  },
+  {
+    id: "alert-b-activity",
+    type: "UNUSUAL_ACTIVITY",
+    severity: "HIGH",
+    status: "active",
+    provider: "PROVIDER_A",
+    outletId: "dha-017",
+    outletName: "Dhanmondi 27 Agent Point",
+    area: "Dhaka North",
+    summary: "Repeated cash-out amounts exceed normal outlet activity and require review.",
+    occurredAt: "2026-07-11T09:29:00.000Z",
+    freshness: "fresh",
+    dataQuality: "good",
+    modelConfidence: 0.81,
+    safeNextStep: "Verify transaction context before taking any operational action.",
+    recipient: "Provider A Operations",
+    owner: "Unassigned",
+    linkedCase: "CASE-204",
+    evidence: [
+      { detector: "Repeated identical amounts", baseline: "1 occurrence", observed: "4 occurrences", threshold: "3 occurrences", window: "15 minutes", explanation: "A local event or routine bulk service may explain a temporary concentration." },
+      { detector: "Transaction velocity", baseline: "5 cash-outs", observed: "16 cash-outs", threshold: "12 cash-outs", window: "15 minutes", explanation: "Demand surge may be normal during a local peak period." },
+    ],
+  },
+  {
+    id: "alert-b-review",
+    type: "COMBINED_REVIEW",
+    severity: "HIGH",
+    status: "acknowledged",
+    provider: "PROVIDER_A",
+    outletId: "dha-017",
+    outletName: "Dhanmondi 27 Agent Point",
+    area: "Dhaka North",
+    summary: "Liquidity pressure and unusual activity are both present. Review underlying signals separately.",
+    occurredAt: "2026-07-11T09:33:00.000Z",
+    freshness: "fresh",
+    dataQuality: "good",
+    modelConfidence: 0.78,
+    safeNextStep: "Verify each signal independently and contact authorized operations.",
+    recipient: "Provider A Operations",
+    owner: "M. Rahman",
+    linkedCase: "CASE-204",
+    evidence: [
+      { detector: "Combined review rule", baseline: "No combined review", observed: "2 review signals", threshold: "2 signals", window: "15 minutes", explanation: "Signals are correlated in time only; correlation does not establish cause." },
+    ],
+  },
+  {
+    id: "alert-c-inconsistency",
+    type: "DATA_INCONSISTENCY",
+    severity: "MEDIUM",
+    status: "active",
+    provider: "PROVIDER_A",
+    outletId: "ban-008",
+    outletName: "Banani Lake Road Counter",
+    area: "Dhaka North",
+    summary: "Conflicting balance snapshot and delayed feed require data verification before forecast use.",
+    occurredAt: "2026-07-11T09:34:00.000Z",
+    freshness: "stale",
+    dataQuality: "critical",
+    modelConfidence: 0.43,
+    safeNextStep: "Verify data. Do not rely on an exact forecast until feed consistency is restored.",
+    recipient: "Provider A Operations",
+    owner: "Data Quality Desk",
+    linkedCase: null,
+    evidence: [
+      { detector: "Balance reconciliation", baseline: "Last accepted snapshot", observed: "Conflicting snapshot", threshold: "Exact match required", window: "6 hours", explanation: "Delayed or out-of-order provider feed may explain the mismatch." },
+      { detector: "Feed freshness", baseline: "Under 15 minutes", observed: "6 hours 15 minutes", threshold: "30 minutes", window: "Current feed", explanation: "Provider feed may be delayed; verify source availability." },
+    ],
+  },
+];
+
+function parseEnum<T extends string>(value: string | string[] | undefined, allowed: readonly T[], fallback: T): T {
+  const candidate = Array.isArray(value) ? value[0] : value;
+  return candidate && allowed.includes(candidate as T) ? (candidate as T) : fallback;
+}
+
+export function parseAlertFilters(searchParams: Record<string, string | string[] | undefined>): AlertFilters {
+  return {
+    severity: parseEnum(searchParams.severity, ["all", "LOW", "MEDIUM", "HIGH"], "all"),
+    status: parseEnum(searchParams.status, ["all", "active", "acknowledged", "escalated", "resolved", "closed"], "all"),
+    type: parseEnum(searchParams.type, ["all", "LIQUIDITY_PRESSURE", "UNUSUAL_ACTIVITY", "DATA_INCONSISTENCY", "COMBINED_REVIEW"], "all"),
+    dataQuality: parseEnum(searchParams.dataQuality, ["all", "good", "degraded", "critical"], "all"),
+    view: parseEnum(searchParams.view, ["default", "loading", "empty", "error"], "default"),
+  };
+}
+
+export async function getAlerts(filters: AlertFilters): Promise<OperationsAlert[]> {
+  return fixtureAlerts
+    .filter((alert) => alert.provider === currentProviderScope)
+    .filter((alert) => filters.severity === "all" || alert.severity === filters.severity)
+    .filter((alert) => filters.status === "all" || alert.status === filters.status)
+    .filter((alert) => filters.type === "all" || alert.type === filters.type)
+    .filter((alert) => filters.dataQuality === "all" || alert.dataQuality === filters.dataQuality)
+    .toSorted((left, right) => right.occurredAt.localeCompare(left.occurredAt));
+}
+
+export async function getAlert(alertId: string): Promise<OperationsAlert | null> {
+  const alert = fixtureAlerts.find((item) => item.id === alertId && item.provider === currentProviderScope);
+  return alert ?? null;
+}
