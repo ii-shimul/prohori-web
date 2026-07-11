@@ -6,7 +6,9 @@ import type { UserRole } from "@/types/auth";
 
 import { LocaleSwitcher } from "./locale-switcher";
 
-export function Topbar({ role, locale, showSignOut = true }: { role: UserRole; locale: Locale; showSignOut?: boolean }) {
+export function Topbar({ roles, locale, showSignOut = true }: { roles: readonly UserRole[]; locale: Locale; showSignOut?: boolean }) {
+  const roleLabel = roles.length > 0 ? roles.map((role) => role.replaceAll("_", " ")).join(", ") : "NO API ROLE";
+
   return (
     <header className="flex min-h-16 items-center justify-between gap-4 border-b border-border bg-background px-4 sm:px-6">
       <div className="min-w-0">
@@ -15,8 +17,8 @@ export function Topbar({ role, locale, showSignOut = true }: { role: UserRole; l
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <LocaleSwitcher locale={locale} />
-        <Badge variant="outline" className="max-w-52 truncate" title={role}>
-          {role.replaceAll("_", " ")}
+        <Badge variant="outline" className="max-w-52 truncate" title={roleLabel}>
+          {roleLabel}
         </Badge>
         {showSignOut ? (
           <form action={signOut}>

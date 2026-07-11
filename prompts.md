@@ -78,3 +78,4 @@ Teach me as you go: for every issue you touch, explain it in plain language (no 
 
 Then work through the rest from the full results above.
 
+use cavemen skill and start phase 0 and then analyze it, test it and then amake tmi urls diba i will check and test it

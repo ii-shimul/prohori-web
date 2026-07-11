@@ -18,7 +18,7 @@ export const getVerifiedClaims = cache(async () => {
   return data.claims;
 });
 
-export async function getVerifiedAccessToken(): Promise<string | null> {
+export const getVerifiedAccessToken = cache(async (): Promise<string | null> => {
   const claims = await getVerifiedClaims();
 
   if (!claims) {
@@ -31,4 +31,4 @@ export async function getVerifiedAccessToken(): Promise<string | null> {
   } = await supabase.auth.getSession();
 
   return session?.access_token ?? null;
-}
+});

@@ -37,11 +37,11 @@ const navigationItems: readonly NavigationItem[] = [
   { href: "/settings", label: "Settings", icon: SettingsIcon, roles: allDashboardRoles },
 ];
 
-function visibleItems(role: UserRole) {
-  return navigationItems.filter((item) => item.roles.includes(role));
+function visibleItems(roles: readonly UserRole[]) {
+  return navigationItems.filter((item) => item.roles.some((role) => roles.includes(role)));
 }
 
-export function Sidebar({ role }: { role: UserRole }) {
+export function Sidebar({ roles }: { roles: readonly UserRole[] }) {
   return (
     <nav aria-label="Primary navigation" className="flex h-full flex-col">
       <div className="border-b border-border px-5 py-5">
@@ -49,7 +49,7 @@ export function Sidebar({ role }: { role: UserRole }) {
         <p className="mt-1 text-xs text-muted-foreground">Operations Hub</p>
       </div>
       <div className="flex-1 space-y-1 p-3">
-        {visibleItems(role).map((item) => {
+        {visibleItems(roles).map((item) => {
           const Icon = item.icon;
 
           return (
@@ -68,10 +68,10 @@ export function Sidebar({ role }: { role: UserRole }) {
   );
 }
 
-export function MobileNavigation({ role }: { role: UserRole }) {
+export function MobileNavigation({ roles }: { roles: readonly UserRole[] }) {
   return (
     <nav aria-label="Primary navigation" className="flex gap-1 overflow-x-auto px-3 py-2">
-      {visibleItems(role).map((item) => {
+      {visibleItems(roles).map((item) => {
         const Icon = item.icon;
 
         return (

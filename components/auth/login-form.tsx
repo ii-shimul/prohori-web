@@ -3,7 +3,8 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
-import { initialLoginState, signIn } from "@/app/(auth)/login/actions";
+import { signIn } from "@/app/(auth)/login/actions";
+import { initialLoginState } from "@/app/(auth)/login/state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
