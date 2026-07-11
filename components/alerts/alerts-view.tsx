@@ -32,7 +32,7 @@ function AlertCard({ alert, detailBasePath, locale }: { alert: OperationsAlert; 
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-pretty text-sm leading-6">{t(locale, `alerts.summary.${alert.id}`)}</p>
+        <p className="text-pretty text-sm leading-6">{t(locale, alert.summaryKey)}</p>
         <dl className="grid gap-3 rounded-lg bg-muted p-3 text-sm sm:grid-cols-4">
           <div><dt className="text-xs text-muted-foreground">Detector</dt><dd className="mt-1 font-medium">{primaryEvidence.detector}</dd></div>
           <div><dt className="text-xs text-muted-foreground">Baseline</dt><dd className="mt-1 font-mono tabular-nums">{primaryEvidence.baseline}</dd></div>

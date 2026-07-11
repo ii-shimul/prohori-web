@@ -35,5 +35,15 @@
   "status.INVESTIGATING": "Investigating",
   "status.ESCALATED": "Escalated",
   "status.RESOLVED": "Resolved",
-  "status.CLOSED": "Closed"
+  "status.CLOSED": "Closed",
+  "alerts.provider_emoney_pressure.review": "Provider e-money reserve threshold may be breached.",
+  "alerts.shared_cash_pressure.review": "Shared physical cash reserve threshold may be breached.",
+  "alerts.unusual_activity_review.review": "Unusual cash-out velocity or amount concentration detected.",
+  "alerts.data_quality_issue.review": "Data quality degraded: potential sequence gaps or stale feed.",
+  "alerts.combined_review.review": "Combined review: liquidity pressure and unusual activity signals overlap.",
+  "alerts.next.alerts.provider_emoney_pressure.review": "Verify demand context and contact authorized operations.",
+  "alerts.next.alerts.shared_cash_pressure.review": "Verify physical vault balance and contact authorized operations.",
+  "alerts.next.alerts.unusual_activity_review.review": "Verify transaction context before taking any operational action.",
+  "alerts.next.alerts.data_quality_issue.review": "Verify data. Do not rely on an exact forecast until feed consistency is restored.",
+  "alerts.next.alerts.combined_review.review": "Verify each signal independently and contact authorized operations."
 }

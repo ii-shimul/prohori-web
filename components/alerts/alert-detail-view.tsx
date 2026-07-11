@@ -21,7 +21,7 @@ export async function AlertDetailView({ alert, backHref, outletHref, caseHref }:
       <header className="border-b border-border pb-5">
         <Link href={backHref} className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"><ArrowLeftIcon aria-hidden="true" className="size-4" />{t(locale, "alerts.back")}</Link>
         <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="min-w-0"><p className="text-sm font-semibold tracking-[0.12em] text-primary uppercase">{t(locale, "alerts.detail")}</p><div className="mt-2 flex items-start gap-3"><Icon aria-hidden="true" className="mt-1 size-6 shrink-0 text-primary" /><h1 id="alert-title" className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl">{t(locale, `alerts.type.${alert.type}`)}</h1></div><p className="mt-3 max-w-3xl text-pretty text-muted-foreground">{t(locale, `alerts.summary.${alert.id}`)}</p></div>
+          <div className="min-w-0"><p className="text-sm font-semibold tracking-[0.12em] text-primary uppercase">{t(locale, "alerts.detail")}</p><div className="mt-2 flex items-start gap-3"><Icon aria-hidden="true" className="mt-1 size-6 shrink-0 text-primary" /><h1 id="alert-title" className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl">{t(locale, `alerts.type.${alert.type}`)}</h1></div><p className="mt-3 max-w-3xl text-pretty text-muted-foreground">{t(locale, alert.summaryKey)}</p></div>
           <div className="flex flex-wrap gap-2"><Badge variant="outline" className={severityClass[alert.severity]}>{alert.severity}</Badge><FreshnessBadge freshness={alert.freshness} locale={locale} /><Badge variant="outline" className={qualityClass[alert.dataQuality]}>{t(locale, "alerts.dataQuality")}: {alert.dataQuality}</Badge></div>
         </div>
       </header>
@@ -33,7 +33,7 @@ export async function AlertDetailView({ alert, backHref, outletHref, caseHref }:
         <aside className="space-y-4">
           <AlertActionsClient alertId={alert.id} status={alert.status} owner={alert.owner} hasLinkedCase={!!alert.linkedCase} />
           <Card className="border border-border shadow-none"><CardHeader><CardTitle>Review Context</CardTitle></CardHeader><CardContent className="space-y-3 text-sm"><div><p className="text-muted-foreground">Outlet</p><Link className="font-medium text-primary hover:underline" href={outletHref}>{alert.outletName}</Link></div><div><p className="text-muted-foreground">Recipient</p><p className="font-medium">{alert.recipient}</p></div><div><p className="text-muted-foreground">Owner</p><p className="font-medium">{alert.owner}</p></div><div><p className="text-muted-foreground">Linked Case</p>{alert.linkedCase && caseHref ? <Link className="font-medium text-primary hover:underline" href={caseHref}>{alert.linkedCase}</Link> : <p className="font-medium">Not created</p>}</div><div><p className="text-muted-foreground">Raised</p><p>{formatDateTime(alert.occurredAt)}</p></div></CardContent></Card>
-          <Card className="border border-border shadow-none"><CardHeader><CardTitle>{t(locale, "alerts.safeNextStep")}</CardTitle></CardHeader><CardContent><p className="text-sm font-medium">{t(locale, `alerts.next.${alert.id}`)}</p></CardContent></Card>
+          <Card className="border border-border shadow-none"><CardHeader><CardTitle>{t(locale, "alerts.safeNextStep")}</CardTitle></CardHeader><CardContent><p className="text-sm font-medium">{t(locale, alert.nextStepKey)}</p></CardContent></Card>
         </aside>
       </div>
     </section>

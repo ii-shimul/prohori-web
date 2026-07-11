@@ -24,6 +24,8 @@ export type OperationsAlert = {
   outletName: string;
   area: string;
   summary: string;
+  summaryKey: string;
+  nextStepKey: string;
   occurredAt: string;
   freshness: "fresh" | "degraded" | "stale";
   dataQuality: AlertDataQuality;
@@ -62,6 +64,8 @@ const fixtureAlerts: readonly OperationsAlert[] = [
     outletName: "Dhanmondi 27 Agent Point",
     area: "Dhaka North",
     summary: "Provider A e-money may cross its reserve threshold within 38 minutes.",
+    summaryKey: "alerts.summary.alert-b-liquidity",
+    nextStepKey: "alerts.next.alert-b-liquidity",
     occurredAt: "2026-07-11T09:32:00.000Z",
     freshness: "fresh",
     dataQuality: "good",
@@ -84,6 +88,8 @@ const fixtureAlerts: readonly OperationsAlert[] = [
     outletName: "Dhanmondi 27 Agent Point",
     area: "Dhaka North",
     summary: "Repeated cash-out amounts exceed normal outlet activity and require review.",
+    summaryKey: "alerts.summary.alert-b-activity",
+    nextStepKey: "alerts.next.alert-b-activity",
     occurredAt: "2026-07-11T09:29:00.000Z",
     freshness: "fresh",
     dataQuality: "good",
@@ -107,6 +113,8 @@ const fixtureAlerts: readonly OperationsAlert[] = [
     outletName: "Dhanmondi 27 Agent Point",
     area: "Dhaka North",
     summary: "Liquidity pressure and unusual activity are both present. Review underlying signals separately.",
+    summaryKey: "alerts.summary.alert-b-review",
+    nextStepKey: "alerts.next.alert-b-review",
     occurredAt: "2026-07-11T09:33:00.000Z",
     freshness: "fresh",
     dataQuality: "good",
@@ -129,6 +137,8 @@ const fixtureAlerts: readonly OperationsAlert[] = [
     outletName: "Banani Lake Road Counter",
     area: "Dhaka North",
     summary: "Conflicting balance snapshot and delayed feed require data verification before forecast use.",
+    summaryKey: "alerts.summary.alert-c-inconsistency",
+    nextStepKey: "alerts.next.alert-c-inconsistency",
     occurredAt: "2026-07-11T09:34:00.000Z",
     freshness: "stale",
     dataQuality: "critical",
@@ -274,11 +284,13 @@ function toOperationsAlert(alert: ApiAlert | ApiAlertDetail, providers: readonly
     outletName: outlet?.name ?? `Outlet ${alert.outletId}`,
     area: outlet?.area.name ?? "Authorized area",
     summary,
+    summaryKey: alert.message.key,
+    nextStepKey: `alerts.next.${alert.message.key}`,
     occurredAt: alert.lastObservedAt,
     freshness: toFreshness(alert.dataQuality),
     dataQuality: toDataQuality(alert.dataQuality),
     modelConfidence: alert.modelConfidence,
-    safeNextStep: "Review stored evidence before taking any operational action.",
+    safeNextStep: `alerts.next.${alert.message.key}`,
     recipient: `${provider} Operations`,
     owner: alert.ownerUserId ?? "Unassigned",
     linkedCase: null,

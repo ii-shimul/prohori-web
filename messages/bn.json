@@ -35,5 +35,15 @@
   "status.INVESTIGATING": "তদন্তাধীন",
   "status.ESCALATED": "উর্ধ্বতনে পাঠানো",
   "status.RESOLVED": "সমাধান করা হয়েছে",
-  "status.CLOSED": "বন্ধ"
+  "status.CLOSED": "বন্ধ",
+  "alerts.provider_emoney_pressure.review": "প্রোভাইডারের ই-মানি রিজার্ভ সীমা অতিক্রম করতে পারে।",
+  "alerts.shared_cash_pressure.review": "আউটলেটের ভল্ট ক্যাশ রিজার্ভ সীমা অতিক্রম করতে পারে।",
+  "alerts.unusual_activity_review.review": "অস্বাভাবিক ক্যাশ-আউট গতি বা পরিমাণের ঘনত্ব শনাক্ত হয়েছে।",
+  "alerts.data_quality_issue.review": "ডেটার গুণমান অবনমিত: সম্ভাব্য সিকোয়েন্স গ্যাপ বা পুরোনো ফিড।",
+  "alerts.combined_review.review": "যৌথ পর্যালোচনা: তারল্য চাপ ও অস্বাভাবিক কার্যক্রম সংকেত একই সময়ে ঘটেছে।",
+  "alerts.next.alerts.provider_emoney_pressure.review": "চাহিদার প্রেক্ষাপট যাচাই করুন এবং অনুমোদিত অপারেশনস টিমের সঙ্গে যোগাযোগ করুন।",
+  "alerts.next.alerts.shared_cash_pressure.review": "ভল্টের শারীরিক ব্যালেন্স যাচাই করুন এবং অনুমোদিত অপারেশনস টিমের সঙ্গে যোগাযোগ করুন।",
+  "alerts.next.alerts.unusual_activity_review.review": "কোনো অপারেশনাল পদক্ষেপের আগে লেনদেনের প্রেক্ষাপট যাচাই করুন।",
+  "alerts.next.alerts.data_quality_issue.review": "ডেটা যাচাই করুন। ফিডের সামঞ্জস্য পুনরুদ্ধার না হওয়া পর্যন্ত নির্ভুল পূর্বাভাসের ওপর নির্ভর করবেন না।",
+  "alerts.next.alerts.combined_review.review": "প্রতিটি সংকেত স্বাধীনভাবে যাচাই করুন এবং অনুমোদিত অপারেশনস টিমের সঙ্গে যোগাযোগ করুন।"
 }
