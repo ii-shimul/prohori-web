@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 
 import { getVerifiedClaims } from "./session";
 
-export async function requireAuthenticatedUser() {
+export async function requireAuth() {
   const claims = await getVerifiedClaims();
 
   if (!claims) {
@@ -11,3 +11,5 @@ export async function requireAuthenticatedUser() {
 
   return claims;
 }
+
+export const requireAuthenticatedUser = requireAuth;

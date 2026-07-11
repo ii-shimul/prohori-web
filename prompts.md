@@ -46,3 +46,35 @@ use cavemna skill and read plan.md again and complete phase 5 step 5.1 and tes i
 
 use cavemna skill and read plan.md again and complete phase 5 step 5.2 and tes it, analyze it and give me the testing urls
 
+use cavemna skill and read plan.md again and complete phase 6 step 6.1 and test it, analyze it and give me the testing urls
+
+Fix the top 3 React Doctor issues in prohori-web on this pass — leave the rest for a follow-up.
+
+1. ERROR Bugs: Unauthenticated server action can be called directly (×2)
+   Anyone can call server action "signOut" without logging in, since it has no auth check.
+   Curl with no cache & follow the canonical fix and false positive check recipe before fixing: https://react.doctor/docs/rules/react-doctor/server-auth-actions
+   - app/(dashboard)/actions.ts:7
+   - app/actions/locale.ts:7
+2. WARN Maintainability: Non-component export in component file (×5)
+   This file exports non-components, so Fast Refresh can't safely preserve component state.
+   Curl with no cache & follow the canonical fix and false positive check recipe before fixing: https://react.doctor/docs/rules/react-doctor/only-export-components
+   - components/alerts/alerts-view.tsx:78
+   - components/ui/badge.tsx:52
+   - components/ui/button.tsx:59
+3. WARN Bugs: Prop derived into useState (one fix · 4 sites)
+   Your users see a stale value when prop "caseRecord" changes because useState copies it once.
+   Curl with no cache & follow the canonical fix and false positive check recipe before fixing: https://react.doctor/docs/rules/react-doctor/no-derived-useState
+   - components/cases/case-workflow-preview.tsx:33
+
+Full results for all 26 issues (diagnostics.json + a .txt per rule): C:\Users\USER\AppData\Local\Temp\react-doctor-4758eba2-2517-4d0c-9d3b-ef8df965cce0
+
+Read each file and fix the root cause — don't suppress or silence the rule.
+
+Findings that share a `fixGroupId` (in diagnostics.json) are one root cause — a single fix clears all of them, so treat each `fixGroupId` as ONE task, not one per site.
+
+Verify against the real thing, don't assume: confirm each change matches the canonical fix recipe you fetched for that rule, then re-run `npx react-doctor@latest --verbose` and check the issue is actually gone against the real tool before moving on.
+
+Teach me as you go: for every issue you touch, explain it in plain language (no jargon) — what the problem is, why it's a problem, and how serious it is in human terms. Describe the real-world impact and severity concretely (e.g. "this crashes the page for users on Safari" vs. "this is a minor cleanup with no user impact") so I understand why it matters, not just what changed.
+
+Then work through the rest from the full results above.
+

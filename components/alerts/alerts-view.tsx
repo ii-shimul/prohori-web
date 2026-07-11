@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ActivityIcon, DatabaseZapIcon, GaugeIcon, Layers3Icon } from "lucide-react";
+
+import { alertPresentation, severityClass } from "@/components/alerts/alert-presentation";
 
 import { AlertFiltersBar } from "@/components/alerts/alert-filters";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -13,15 +14,6 @@ import { getLocale, type Locale } from "@/lib/i18n/locale";
 import { t } from "@/lib/i18n/messages";
 import { getAlerts, type AlertFilters, type OperationsAlert } from "@/lib/operations/alerts";
 
-const alertPresentation = {
-  LIQUIDITY_PRESSURE: { label: "Liquidity Pressure", icon: GaugeIcon },
-  UNUSUAL_ACTIVITY: { label: "Unusual Activity Requires Review", icon: ActivityIcon },
-  DATA_INCONSISTENCY: { label: "Data Inconsistency", icon: DatabaseZapIcon },
-  COMBINED_REVIEW: { label: "Combined Review", icon: Layers3Icon },
-} as const;
-
-const severityClass = { HIGH: "border-destructive/30 bg-destructive/10 text-destructive", MEDIUM: "border-cta-gold/60 bg-cta-gold/20 text-primary", LOW: "border-success/30 bg-success/10 text-success" } as const;
-const qualityClass = { good: "border-success/30 bg-success/10 text-success", degraded: "border-cta-gold/60 bg-cta-gold/20 text-primary", critical: "border-destructive/30 bg-destructive/10 text-destructive" } as const;
 
 function AlertCard({ alert, detailBasePath, locale }: { alert: OperationsAlert; detailBasePath: "/alerts" | "/preview/operations/alerts"; locale: Locale }) {
   const presentation = alertPresentation[alert.type];
@@ -74,5 +66,3 @@ export async function AlertsView({ filters, action }: { filters: AlertFilters; a
     </section>
   );
 }
-
-export { qualityClass, severityClass, alertPresentation };

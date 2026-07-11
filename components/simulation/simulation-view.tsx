@@ -2,7 +2,8 @@ import Link from "next/link";
 import { CircleAlertIcon, RotateCcwIcon, StepForwardIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { simulationScenarios, type ScenarioCode, type ScenarioStage } from "@/lib/operations/simulation";

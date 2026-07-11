@@ -30,10 +30,15 @@ function eventFor(
 }
 
 export function CaseWorkflowPreview({ caseRecord }: { caseRecord: CaseRecord }) {
-  const [state, setState] = useState(caseRecord.state);
-  const [owner, setOwner] = useState(caseRecord.owner);
-  const [notes, setNotes] = useState(caseRecord.notes);
-  const [timeline, setTimeline] = useState(caseRecord.timeline);
+  const snapshotKey = `${caseRecord.id}:${caseRecord.state}:${caseRecord.owner}:${caseRecord.timeline.at(-1)?.id ?? "empty"}:${caseRecord.notes.length}`;
+  return <CaseWorkflowDraft key={snapshotKey} caseRecord={caseRecord} />;
+}
+
+function CaseWorkflowDraft({ caseRecord }: { caseRecord: CaseRecord }) {
+  const [state, setState] = useState(() => caseRecord.state);
+  const [owner, setOwner] = useState(() => caseRecord.owner);
+  const [notes, setNotes] = useState(() => caseRecord.notes);
+  const [timeline, setTimeline] = useState(() => caseRecord.timeline);
   const [version, setVersion] = useState(1);
   const [noteDraft, setNoteDraft] = useState("");
   const [resolutionCode, setResolutionCode] = useState("VERIFIED_NORMAL");

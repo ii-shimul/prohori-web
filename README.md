@@ -14,8 +14,13 @@ Next.js web client for synthetic multi-provider operations review. Supabase hand
 
 ```bash
 npm run lint
+npm run test
 npm run build
 ```
+
+`npm run test` runs deterministic fixture smoke tests for Provider A scope, dashboard filters, Scenarios A–D, simulation routes, auth guardrail source, and no-action UI boundary. It does not claim a live Supabase/API end-to-end pass.
+
+Live verification remains blocked until API owner supplies: Supabase test credentials, API base URL, versioned OpenAPI contract, `/me` role response, domain endpoints, and scenario control endpoints. Record any live failure with route, role, scenario, API response/error code, and correlation ID.
 
 ## Contract status
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowLeftIcon } from "lucide-react";
 
-import { alertPresentation, qualityClass, severityClass } from "@/components/alerts/alerts-view";
+import { alertPresentation, qualityClass, severityClass } from "@/components/alerts/alert-presentation";
 import { FreshnessBadge } from "@/components/shared/freshness-badge";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
