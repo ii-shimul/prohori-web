@@ -165,7 +165,7 @@ function toOutletDetail(
     risk: toRisk(lastPoint?.riskBand),
     thresholdEtaMinutes: lastPoint?.reserveEtaMinutes ?? null,
     confidence: health.modelConfidence,
-    safeNextStep: null,
+    safeNextStep: deriveSafeNextStep(toRisk(lastPoint?.riskBand), toDataQuality(quality.dataQuality)),
     forecast: resource?.points.map((point) => ({
       label: point.horizonMinutes === 30 ? "30 min" : point.horizonMinutes === 60 ? "1 hour" : point.horizonMinutes === 120 ? "2 hours" : "4 hours",
       lowMinor: point.projectedLowMinor,
@@ -193,4 +193,11 @@ function toDataQuality(value: ApiQuality["dataQuality"]): DataQuality {
 
 function toRisk(value: ApiForecastRun["resources"][number]["points"][number]["riskBand"] | undefined): RiskLevel {
   return value === "high" || value === "critical" ? "high" : value === "moderate" ? "medium" : "low";
+}
+
+function deriveSafeNextStep(risk: RiskLevel, quality: DataQuality): string {
+  if (quality === "critical") return "Verify data before relying on any forecast or escalating the case.";
+  if (risk === "high") return "Verify demand context and contact authorized operations.";
+  if (risk === "medium") return "Monitor outlet and verify if pressure persists.";
+  return "No immediate action required. Continue routine monitoring.";
 }

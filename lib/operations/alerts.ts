@@ -265,11 +265,28 @@ async function requireAccessToken(): Promise<string> {
   return token;
 }
 
+const MESSAGE_SUMMARY: Record<string, string> = {
+  "alerts.provider_emoney_pressure.review": "Provider e-money may cross its reserve threshold. Verify demand context before escalating.",
+  "alerts.shared_cash_pressure.review": "Shared physical cash may cross its reserve threshold. Verify demand context before escalating.",
+  "alerts.unusual_activity_review.review": "Transaction pattern requires review. Verify context before taking any operational action.",
+  "alerts.data_quality_issue.review": "Data inconsistency or stale feed detected. Verify data before relying on forecast output.",
+  "alerts.combined_review.review": "Multiple signals present. Review each signal independently — correlation does not establish cause.",
+};
+
+const MESSAGE_NEXT_STEP: Record<string, string> = {
+  "alerts.provider_emoney_pressure.review": "Verify demand context and contact authorized operations if pressure persists.",
+  "alerts.shared_cash_pressure.review": "Verify demand context and contact authorized operations if pressure persists.",
+  "alerts.unusual_activity_review.review": "Verify transaction context before taking any operational action.",
+  "alerts.data_quality_issue.review": "Do not rely on an exact forecast until feed consistency is restored.",
+  "alerts.combined_review.review": "Verify each signal independently and contact authorized operations.",
+};
+
 function toOperationsAlert(alert: ApiAlert | ApiAlertDetail, providers: readonly ApiProvider[], outlets: readonly ApiOutlet[]): OperationsAlert {
   const provider = providers.find((item) => item.id === alert.providerId)?.code ?? currentProviderScope;
   const outlet = outlets.find((item) => item.id === alert.outletId);
   const type = toUiAlertType(alert.type);
-  const summary = `Alert evidence: ${alert.message.key}`;
+  const summary = MESSAGE_SUMMARY[alert.message.key] ?? `Review required — ${alert.type.replace(/_/g, " ")}.`;
+  const safeNextStep = MESSAGE_NEXT_STEP[alert.message.key] ?? "Verify context before taking any operational action.";
   const evidence = "evidenceSnapshots" in alert
     ? alert.evidenceSnapshots.map((snapshot) => toEvidence(snapshot.snapshot, snapshot.kind))
     : [toEvidence(alert.evidence, alert.message.key)];
@@ -290,22 +307,41 @@ function toOperationsAlert(alert: ApiAlert | ApiAlertDetail, providers: readonly
     freshness: toFreshness(alert.dataQuality),
     dataQuality: toDataQuality(alert.dataQuality),
     modelConfidence: alert.modelConfidence,
-    safeNextStep: `alerts.next.${alert.message.key}`,
+    safeNextStep,
     recipient: `${provider} Operations`,
-    owner: alert.ownerUserId ?? "Unassigned",
+    owner: alert.ownerUserId ? `User ${alert.ownerUserId.slice(0, 8)}…` : "Unassigned",
     linkedCase: null,
     evidence,
   };
 }
 
+function evidenceKindLabel(kind: string): string {
+  if (kind === "forecast") return "Liquidity forecast";
+  if (kind === "anomaly_signal") return "Unusual activity detector";
+  if (kind === "data_quality_incident") return "Data quality check";
+  if (kind === "correlation") return "Combined signal correlation";
+  return kind.replace(/_/g, " ");
+}
+
 function toEvidence(value: Record<string, unknown>, kind: string): AlertEvidence {
+  let observed = "See evidence record";
+  if (value.score != null) observed = `Anomaly score: ${Number(value.score).toFixed(2)}`;
+  else if (value.incidentCount != null) observed = `${value.incidentCount} active incident(s)`;
+  else if (value.resource != null) observed = `Resource: ${String(value.resource).replace(/_/g, " ")}`;
+  else if (value.forecastRunId != null) observed = "Forecast run recorded — reserve threshold at risk";
+
+  const explanation =
+    typeof value.statement === "string"
+      ? value.statement
+      : "Review the evidence record before deciding the next action.";
+
   return {
-    detector: kind,
-    baseline: "Stored baseline",
-    observed: JSON.stringify(value),
-    threshold: "Review required",
-    window: "Recorded evidence window",
-    explanation: "Review API evidence before deciding next step.",
+    detector: evidenceKindLabel(kind),
+    baseline: "Within normal operating range",
+    observed,
+    threshold: "Review threshold exceeded",
+    window: "Recorded observation window",
+    explanation,
   };
 }
 

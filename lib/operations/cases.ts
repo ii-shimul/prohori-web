@@ -116,17 +116,23 @@ function toCaseRecord(caseRecord: ApiCase, outlets: readonly ApiOutlet[], provid
     }
   }
 
+  const outletName = outlet?.name ?? `Outlet ${caseRecord.outletId}`;
+  const title = `${outletName} — ${caseRecord.state.charAt(0) + caseRecord.state.slice(1).toLowerCase()} case`;
+  const owner = caseRecord.ownerUserId
+    ? `User ${caseRecord.ownerUserId.slice(0, 8)}\u2026`
+    : "Unassigned";
+
   return {
     id: caseRecord.id,
-    title: `Case ${caseRecord.id}`,
+    title,
     provider,
     outletId: caseRecord.outletId,
-    outletName: outlet?.name ?? `Outlet ${caseRecord.outletId}`,
+    outletName,
     severity: null,
     alertId,
     state: caseRecord.state,
     version: caseRecord.version,
-    owner: caseRecord.ownerUserId ?? "Owner not provided by API",
+    owner,
     notes: timeline?.notes.map((note) => ({
       id: stringValue(note.id),
       at: stringValue(note.createdAt),

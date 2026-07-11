@@ -37,6 +37,9 @@ type ApiOutlet = components["schemas"]["Outlet"];
 type ApiProvider = components["schemas"]["Provider"];
 type ApiHealth = components["schemas"]["OutletHealth"];
 type ApiForecastRun = components["schemas"]["ForecastRun"];
+type ApiAlert = components["schemas"]["Alert"];
+type ApiCase = components["schemas"]["Case"];
+
 
 export type OutletOverview = {
   kpis: {
@@ -181,7 +184,7 @@ function parsePage(value: string | string[] | undefined): number {
 export function parseOutletFilters(searchParams: Record<string, string | string[] | undefined>): OutletFilters {
   return {
     provider: parseEnum(searchParams.provider, ["all", "PROVIDER_A", "PROVIDER_B", "PROVIDER_C"], "all"),
-    agent: parseEnum(searchParams.agent, ["all", ...scopedFixtureOutlets.map((item) => item.agentName)], "all"),
+    agent: "all",
     area: parseEnum(searchParams.area, ["all", ...scopedFixtureOutlets.map((item) => item.area)], "all"),
     time: parseEnum(searchParams.time, ["4h", "24h", "7d"], "24h"),
     risk: parseEnum(searchParams.risk, ["all", "low", "medium", "high"], "all"),
@@ -250,10 +253,13 @@ async function getApiOutletOverview(filters: OutletFilters): Promise<OutletOverv
   const accessToken = await getVerifiedAccessToken();
   if (!accessToken) throw new Error("Authenticated API read requires a verified Supabase access token.");
 
+  // Core outlet + provider data — must succeed for the dashboard to render.
   const [outlets, providers] = await Promise.all([
     apiRequest<readonly ApiOutlet[]>("outlets", accessToken),
     apiRequest<readonly ApiProvider[]>("providers", accessToken),
   ]);
+
+  // Per-outlet health + forecast — run concurrently; individual failures surface as errors.
   const providerById = new Map(providers.map((provider) => [provider.id, provider.code]));
   const items = await Promise.all(outlets.map(async (outlet) => {
     const [health, forecast] = await Promise.all([
@@ -262,6 +268,18 @@ async function getApiOutletOverview(filters: OutletFilters): Promise<OutletOverv
     ]);
     return toOutletRisk(outlet, health, forecast, providerById);
   }));
+
+  // KPI supplementary counts — optional; dashboard still renders if these fail.
+  const [alertsResult, casesResult] = await Promise.allSettled([
+    apiRequest<readonly ApiAlert[]>("alerts", accessToken, { query: { active: "true" } }),
+    apiRequest<readonly ApiCase[]>("cases", accessToken),
+  ]);
+  const highAlerts = alertsResult.status === "fulfilled"
+    ? alertsResult.value.filter((a) => a.severity === "high" || a.severity === "critical").length
+    : null;
+  const openCases = casesResult.status === "fulfilled"
+    ? casesResult.value.filter((c) => c.state !== "RESOLVED" && c.state !== "CLOSED").length
+    : null;
 
   const filtered = items
     .filter((item) => filters.provider === "all" || item.provider === filters.provider)
@@ -276,9 +294,9 @@ async function getApiOutletOverview(filters: OutletFilters): Promise<OutletOverv
   return {
     kpis: {
       outletsUnderPressure: items.filter((item) => item.risk === "high").length,
-      highAlerts: null,
+      highAlerts,
       staleFeeds: items.filter((item) => item.freshness === "stale").length,
-      openCases: null,
+      openCases,
     },
     items: filtered.slice(start, start + PAGE_SIZE),
     total: filtered.length,

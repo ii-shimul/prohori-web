@@ -86,17 +86,40 @@ export async function getFeedHealthIncidents(source: FeedHealthSource = "fixture
       const provider = incident.providerId ? providerById.get(incident.providerId) : undefined;
       const outlet = incident.outletId ? outletById.get(incident.outletId) : undefined;
       const health = incident.providerId ? feedHealth.items.find((item) => item.providerId === incident.providerId) : undefined;
+      const details = (incident.details ?? {}) as Record<string, unknown>;
+
+      const detail =
+        typeof details.description === "string" ? details.description
+        : typeof details.message === "string" ? details.message
+        : typeof details.reason === "string" ? details.reason
+        : `${incident.category.replace(/_/g, " ")} incident detected.`;
+
+      const safeNextStep =
+        typeof details.nextStep === "string" ? details.nextStep
+        : incident.category === "STALE" ? "Verify source availability before relying on forecast output."
+        : incident.category === "DUPLICATE" ? "Confirm replay handling and keep deduplication evidence with incident review."
+        : incident.category === "SEQUENCE_GAP" ? "Request replay or confirm records were not emitted before relying on velocity evidence."
+        : incident.category === "CONFLICT" ? "Reconcile accepted sequence before using forecast output."
+        : "Verify data before relying on any forecast or escalating the case.";
+
+      const lagSeconds = typeof details.lagSeconds === "number" ? details.lagSeconds : null;
+      const lag = lagSeconds != null
+        ? lagSeconds >= 3600
+          ? `${Math.floor(lagSeconds / 3600)} hr ${Math.floor((lagSeconds % 3600) / 60)} min`
+          : `${Math.floor(lagSeconds / 60)} min`
+        : null;
+
       return {
         id: incident.id,
-        source: provider?.name ?? (incident.providerId ? `Provider ${incident.providerId}` : "Provider not provided by API"),
+        source: provider?.name ?? (incident.providerId ? `Provider ${incident.providerId.slice(0, 8)}\u2026` : "Provider not specified"),
         freshness: health ? toFreshness(health.dataQuality) : null,
-        lag: null,
+        lag,
         issue: incident.category,
-        affectedScope: outlet?.name ?? (incident.outletId ? `Outlet ${incident.outletId}` : "Scope not provided by API"),
+        affectedScope: outlet?.name ?? (incident.outletId ? `Outlet ${incident.outletId.slice(0, 8)}\u2026` : "Scope not specified"),
         observedAt: incident.detectedAt,
-        confidenceEffect: null,
-        detail: JSON.stringify(incident.details),
-        safeNextStep: null,
+        confidenceEffect: health ? `${health.dataQuality === "healthy" ? "Normal" : health.dataQuality === "degraded" ? "Reduced" : "Critical"}: confidence affected` : null,
+        detail,
+        safeNextStep,
       };
     });
   }
