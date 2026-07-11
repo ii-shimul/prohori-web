@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { CaseDetailView } from "@/components/cases/case-detail-view";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CaseWorkflow } from "@/components/cases/case-workflow";
 import { getCase } from "@/lib/operations/cases";
 
 export default async function CaseDetailPage({ params }: { params: Promise<{ caseId: string }> }) {
@@ -15,12 +15,7 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ cas
       alertHref={caseRecord.alertId ? `/alerts/${caseRecord.alertId}` : "/alerts"}
       outletHref={`/outlets/${caseRecord.outletId}`}
     >
-      <Card className="border border-border shadow-none">
-        <CardHeader><CardTitle>Workflow Commands Await API</CardTitle></CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          Live case commands require API idempotency, optimistic version checks, and audit writes. Use development preview to test fixture workflow.
-        </CardContent>
-      </Card>
+      <CaseWorkflow caseRecord={caseRecord} />
     </CaseDetailView>
   );
 }

@@ -198,7 +198,40 @@ export async function getAlert(alertId: string, source: AlertSource = "fixture")
         apiRequest<readonly ApiProvider[]>("providers", accessToken),
         apiRequest<readonly ApiOutlet[]>("outlets", accessToken),
       ]);
-      return toOperationsAlert(alert, providers, outlets);
+      const operationsAlert = toOperationsAlert(alert, providers, outlets);
+      
+      try {
+        const cases = await apiRequest<readonly components["schemas"]["Case"][]>("cases", accessToken, {
+          query: { outletId: alert.outletId },
+        });
+        if (cases && cases.length > 0) {
+          const timelines = await Promise.all(
+            cases.map((c) =>
+              apiRequest<components["schemas"]["CaseTimeline"]>(`cases/${encodeURIComponent(c.id)}/timeline`, accessToken).then(
+                (timeline) => ({ caseId: c.id, timeline })
+              ).catch(() => null)
+            )
+          );
+          for (const item of timelines) {
+            if (!item) continue;
+            const hasAlert = item.timeline.events.some((event) => {
+              if (event && typeof event === "object" && "metadata" in event) {
+                const metadata = event.metadata as Record<string, unknown>;
+                return metadata && metadata.alertId === alertId;
+              }
+              return false;
+            });
+            if (hasAlert) {
+              operationsAlert.linkedCase = item.caseId;
+              break;
+            }
+          }
+        }
+      } catch (e) {
+        // Silently swallow errors fetching cases/timelines
+      }
+      
+      return operationsAlert;
     } catch (error) {
       if (error instanceof Error && "status" in error && error.status === 404) return null;
       throw error;
@@ -208,7 +241,6 @@ export async function getAlert(alertId: string, source: AlertSource = "fixture")
   const alert = fixtureAlerts.find((item) => item.id === alertId && item.provider === currentProviderScope);
   return alert ?? null;
 }
-
 function alertQuery(filters: AlertFilters): Record<string, string | boolean> {
   const query: Record<string, string | boolean> = {};
   if (filters.status !== "all") query.active = filters.status === "active";

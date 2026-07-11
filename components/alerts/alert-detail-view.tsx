@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeftIcon } from "lucide-react";
 
 import { alertPresentation, qualityClass, severityClass } from "@/components/alerts/alert-presentation";
+import { AlertActionsClient } from "@/components/alerts/alert-actions-client";
 import { FreshnessBadge } from "@/components/shared/freshness-badge";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,6 +31,7 @@ export async function AlertDetailView({ alert, backHref, outletHref, caseHref }:
           {alert.type === "COMBINED_REVIEW" ? <Card className="border border-cta-gold/60 bg-cta-gold/10 shadow-none"><CardContent className="pt-4 text-sm text-primary">Underlying signals require separate review. Their timing does not establish a causal connection.</CardContent></Card> : null}
         </div>
         <aside className="space-y-4">
+          <AlertActionsClient alertId={alert.id} status={alert.status} owner={alert.owner} hasLinkedCase={!!alert.linkedCase} />
           <Card className="border border-border shadow-none"><CardHeader><CardTitle>Review Context</CardTitle></CardHeader><CardContent className="space-y-3 text-sm"><div><p className="text-muted-foreground">Outlet</p><Link className="font-medium text-primary hover:underline" href={outletHref}>{alert.outletName}</Link></div><div><p className="text-muted-foreground">Recipient</p><p className="font-medium">{alert.recipient}</p></div><div><p className="text-muted-foreground">Owner</p><p className="font-medium">{alert.owner}</p></div><div><p className="text-muted-foreground">Linked Case</p>{alert.linkedCase && caseHref ? <Link className="font-medium text-primary hover:underline" href={caseHref}>{alert.linkedCase}</Link> : <p className="font-medium">Not created</p>}</div><div><p className="text-muted-foreground">Raised</p><p>{formatDateTime(alert.occurredAt)}</p></div></CardContent></Card>
           <Card className="border border-border shadow-none"><CardHeader><CardTitle>{t(locale, "alerts.safeNextStep")}</CardTitle></CardHeader><CardContent><p className="text-sm font-medium">{t(locale, `alerts.next.${alert.id}`)}</p></CardContent></Card>
         </aside>

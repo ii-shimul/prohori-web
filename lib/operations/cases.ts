@@ -21,6 +21,7 @@ export type CaseRecord = {
   severity: Severity | null;
   alertId: string | null;
   state: CaseState;
+  version: number;
   owner: string;
   notes: { id: string; at: string; author: string; body: string }[];
   timeline: CaseTimelineEvent[];
@@ -38,6 +39,7 @@ const fixtureCases: readonly CaseRecord[] = [
     severity: "HIGH",
     alertId: "alert-b-review",
     state: "OPEN",
+    version: 1,
     owner: "Unassigned",
     notes: [],
     timeline: [
@@ -100,6 +102,20 @@ export async function getCase(caseId: string, source: CaseSource = "fixture"): P
 function toCaseRecord(caseRecord: ApiCase, outlets: readonly ApiOutlet[], providers: readonly ApiProvider[], timeline?: ApiTimeline): CaseRecord {
   const outlet = outlets.find((item) => item.id === caseRecord.outletId);
   const provider = providers.find((item) => item.id === caseRecord.providerId)?.code ?? "SHARED";
+  
+  let alertId: string | null = null;
+  if (timeline) {
+    for (const event of timeline.events) {
+      if (event && typeof event === "object" && "metadata" in event) {
+        const metadata = event.metadata as Record<string, unknown>;
+        if (metadata && typeof metadata === "object" && typeof metadata.alertId === "string") {
+          alertId = metadata.alertId;
+          break;
+        }
+      }
+    }
+  }
+
   return {
     id: caseRecord.id,
     title: `Case ${caseRecord.id}`,
@@ -107,8 +123,9 @@ function toCaseRecord(caseRecord: ApiCase, outlets: readonly ApiOutlet[], provid
     outletId: caseRecord.outletId,
     outletName: outlet?.name ?? `Outlet ${caseRecord.outletId}`,
     severity: null,
-    alertId: null,
+    alertId,
     state: caseRecord.state,
+    version: caseRecord.version,
     owner: caseRecord.ownerUserId ?? "Owner not provided by API",
     notes: timeline?.notes.map((note) => ({
       id: stringValue(note.id),

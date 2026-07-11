@@ -1,8 +1,11 @@
 import { UnauthorizedState } from "@/components/shared/unauthorized-state";
-import { SimulationApiPending } from "@/components/simulation/simulation-api-pending";
+import { SimulationView } from "@/components/simulation/simulation-view";
 import { canViewDashboardRoute } from "@/lib/auth/roles";
+import { parseSimulationState } from "@/lib/operations/simulation";
 
-export default async function SimulationPage() {
+export default async function SimulationPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   if (!(await canViewDashboardRoute(["DEMO_ADMIN"]))) return <UnauthorizedState />;
-  return <SimulationApiPending />;
+  const params = await searchParams;
+  const state = parseSimulationState(params);
+  return <SimulationView {...state} />;
 }
