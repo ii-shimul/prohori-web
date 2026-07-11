@@ -41,3 +41,8 @@ start from the rest where u had stopped
 use caveman skills and give me the testing urls for step 4.1
 
 use caveman skill and ok now agaiin read plan.md and then start to implement step 4.2, and give me urls to test
+
+use cavemna skill and read plan.md again and complete phase 5 step 5.1 and tes it, analyze it and give me the testing urls
+
+use cavemna skill and read plan.md again and complete phase 5 step 5.2 and tes it, analyze it and give me the testing urls
+

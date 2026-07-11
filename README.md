@@ -54,6 +54,8 @@ Phase 4 fixture previews: `/preview/operations/feed-health` defaults to `DATA_ST
 
 Scenario-control preview: `/preview/operations/simulation` defaults to `DEMO_ADMIN`. Use `?scenario=A|B|C|D&stage=baseline|started|step-1|step-2` to test deterministic controls and refresh behavior. Add `?role=PROVIDER_OPERATIONS` to verify denial. It is URL-backed UI preview only: no API request, database change, or financial control exists. Live simulation stays contract-pending until authorized API endpoints arrive.
 
+Locale preview: use the top-bar `বাংলা` / `English` control on any preview route. It writes only the `prohori_locale` preference cookie, then refreshes server-rendered content; it does not store or change authentication data. Alert and case labels, freshness/state labels, and required Bengali alert summaries/safe next steps are localized. IDs, numeric values, timestamps, and API-error/correlation values remain unchanged.
+
 ## Safety boundary
 
 - No direct Supabase query to application/domain tables.

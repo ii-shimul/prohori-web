@@ -55,6 +55,7 @@ export function OutletRiskTable({
         <CardDescription>{total} scoped outlets ranked by risk and threshold ETA.</CardDescription>
       </CardHeader>
       <CardContent className="px-0">
+        <div className="overflow-x-auto" aria-label="Scrollable priority outlet table">
         <Table>
           <TableHeader>
             <TableRow>
@@ -103,6 +104,7 @@ export function OutletRiskTable({
             })}
           </TableBody>
         </Table>
+        </div>
         {pageCount > 1 ? (
           <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
             <p className="text-sm text-muted-foreground">Page {filters.page} of {pageCount}</p>

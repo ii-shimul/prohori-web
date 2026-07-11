@@ -24,7 +24,7 @@
   --color-success: var(--success);
   --color-cta-gold: var(--cta-gold);
   --color-ink-muted: var(--ink-muted);
-  --font-sans: Arial, Helvetica, sans-serif;
+  --font-sans: "Noto Sans Bengali", "Hind Siliguri", Arial, Helvetica, sans-serif;
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
@@ -81,5 +81,14 @@
 
   a {
     @apply underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    scroll-margin-top: 1.5rem;
   }
 }
