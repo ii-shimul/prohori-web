@@ -50,6 +50,10 @@ Alert fixture preview: open `/preview/operations/alerts`. Scenario B evidence us
 
 Case workflow preview: open `/preview/operations/cases/case-204`. Commands simulate the full lifecycle only in browser memory; refresh resets it. Production case routes render read-only until API workflow commands exist.
 
+Phase 4 fixture previews: `/preview/operations/feed-health` defaults to `DATA_STEWARD`; `/preview/operations/management/readiness` defaults to `PLATFORM_MANAGEMENT`. Add `?role=PROVIDER_OPERATIONS` to either route to verify its unauthorized state. Feed-health supports `?view=loading`, `?view=empty`, and `?view=error`. Both preview routes return 404 in production. Protected routes apply server-side convenience role checks from verified Supabase claims; NestJS API remains authorization authority when live endpoints arrive.
+
+Scenario-control preview: `/preview/operations/simulation` defaults to `DEMO_ADMIN`. Use `?scenario=A|B|C|D&stage=baseline|started|step-1|step-2` to test deterministic controls and refresh behavior. Add `?role=PROVIDER_OPERATIONS` to verify denial. It is URL-backed UI preview only: no API request, database change, or financial control exists. Live simulation stays contract-pending until authorized API endpoints arrive.
+
 ## Safety boundary
 
 - No direct Supabase query to application/domain tables.

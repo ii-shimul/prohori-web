@@ -38,3 +38,6 @@ start from the rest where u had stopped
 
 [$caveman](D:\\prohori\\.agents\\skills\\caveman\\SKILL.md) use caveman skills again and start to develop the phase 3 step 3.2 and test it and analyze it and then give me urls to test it also checke the codes u r gernerating are connected to the other files
 
+use caveman skills and give me the testing urls for step 4.1
+
+use caveman skill and ok now agaiin read plan.md and then start to implement step 4.2, and give me urls to test
