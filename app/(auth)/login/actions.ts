@@ -4,12 +4,7 @@ import { redirect } from "next/navigation";
 
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
-
-export type LoginState = {
-  error: string | null;
-};
-
-export const initialLoginState: LoginState = { error: null };
+import type { LoginState } from "./state";
 
 export async function signIn(
   _previousState: LoginState,

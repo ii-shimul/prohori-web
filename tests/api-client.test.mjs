@@ -24,6 +24,13 @@ test("API path resolution preserves the /api/v1 prefix", async () => {
   assert.equal(buildApiUrl("/me", baseUrl).toString(), "https://prohori-api.onrender.com/api/v1/me");
 });
 
+test("API client has a bounded request timeout for unavailable backend", async () => {
+  const source = await readFile(path.join(root, "lib/api/client.ts"), "utf8");
+
+  assert.match(source, /const API_REQUEST_TIMEOUT_MS = 10_000/);
+  assert.match(source, /code: "API_UNAVAILABLE"/);
+});
+
 test("generated contract version matches authoritative API OpenAPI", async () => {
   const [openapi, contractVersion] = await Promise.all([
     readFile(path.join(root, "..", "prohori-api", "openapi.yaml"), "utf8"),

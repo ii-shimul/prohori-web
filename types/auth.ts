@@ -1,3 +1,5 @@
+import type { components } from "@/lib/api/generated";
+
 export const userRoles = [
   "OUTLET_AGENT",
   "PROVIDER_OPERATIONS",
@@ -5,6 +7,6 @@ export const userRoles = [
   "DATA_STEWARD",
   "VALIDATION_AUDITOR",
   "DEMO_ADMIN",
-] as const;
+] as const satisfies readonly components["schemas"]["UserRole"][];
 
-export type UserRole = (typeof userRoles)[number];
+export type UserRole = components["schemas"]["UserRole"];

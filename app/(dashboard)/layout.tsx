@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
 
 import { AppShell } from "@/components/layout/app-shell";
-import { requireAuthenticatedUser } from "@/lib/auth/guards";
-import { getDashboardRole } from "@/lib/auth/roles";
+import { requireApiCurrentUser } from "@/lib/auth/current-user";
+import { getApiRoles } from "@/lib/auth/api-roles";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
-  await requireAuthenticatedUser();
-  return <AppShell role={await getDashboardRole()}>{children}</AppShell>;
+  const user = await requireApiCurrentUser();
+  return <AppShell roles={getApiRoles(user)}>{children}</AppShell>;
 }

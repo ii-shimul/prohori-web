@@ -743,8 +743,24 @@ export interface components {
             readonly id: string;
             /** @enum {string} */
             readonly locale: "en" | "bn";
-            readonly memberships: readonly Record<string, never>[];
-            readonly assignments: readonly Record<string, never>[];
+            readonly memberships: readonly components["schemas"]["ProviderMembership"][];
+            readonly assignments: readonly components["schemas"]["OutletAssignment"][];
+        };
+        /** @enum {string} */
+        readonly UserRole: "OUTLET_AGENT" | "PROVIDER_OPERATIONS" | "PLATFORM_MANAGEMENT" | "DATA_STEWARD" | "VALIDATION_AUDITOR" | "DEMO_ADMIN";
+        readonly ProviderMembership: {
+            /** Format: uuid */
+            readonly providerId: string;
+            readonly role: components["schemas"]["UserRole"];
+        };
+        readonly OutletAssignment: {
+            /** Format: uuid */
+            readonly areaId: string;
+            /** Format: uuid */
+            readonly outletId: string;
+            /** Format: uuid */
+            readonly providerId: string | null;
+            readonly role: components["schemas"]["UserRole"];
         };
         readonly OutletHealth: {
             /** Format: uuid */
