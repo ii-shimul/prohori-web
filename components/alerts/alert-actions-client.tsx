@@ -5,7 +5,7 @@ import { CircleCheckIcon, ShieldAlertIcon, UserPlusIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { acknowledgeAlert, assignAlert, createAlertCase } from "@/app/(dashboard)/actions";
+import { minimalApiRequest } from "@/lib/api/minimal-client";
 
 const seededUsers = [
   { id: "40000000-0000-4000-8000-000000000002", name: "Operations A" },
@@ -19,11 +19,13 @@ export function AlertActionsClient({
   status,
   owner,
   hasLinkedCase,
+  onWorkflowComplete,
 }: {
   alertId: string;
   status: string;
   owner: string;
   hasLinkedCase: boolean;
+  onWorkflowComplete?: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -32,9 +34,13 @@ export function AlertActionsClient({
     setError(null);
     startTransition(async () => {
       try {
-        await acknowledgeAlert(alertId);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Acknowledge alert failed.");
+        await minimalApiRequest(`alerts/${alertId}/acknowledge`, {
+          method: "POST",
+          idempotencyKey: crypto.randomUUID(),
+        });
+        if (onWorkflowComplete) onWorkflowComplete();
+      } catch (err: any) {
+        setError(err.message || "Acknowledge alert failed.");
       }
     });
   }
@@ -44,9 +50,14 @@ export function AlertActionsClient({
     setError(null);
     startTransition(async () => {
       try {
-        await assignAlert(alertId, assigneeUserId);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Assign alert failed.");
+        await minimalApiRequest(`alerts/${alertId}/assign`, {
+          method: "POST",
+          idempotencyKey: crypto.randomUUID(),
+          body: JSON.stringify({ assigneeUserId }),
+        });
+        if (onWorkflowComplete) onWorkflowComplete();
+      } catch (err: any) {
+        setError(err.message || "Assign alert failed.");
       }
     });
   }
@@ -55,9 +66,16 @@ export function AlertActionsClient({
     setError(null);
     startTransition(async () => {
       try {
-        await createAlertCase(alertId);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Create case failed.");
+        await minimalApiRequest(`alerts/${alertId}/create-case`, {
+          method: "POST",
+          idempotencyKey: crypto.randomUUID(),
+          headers: {
+            "x-correlation-id": crypto.randomUUID(),
+          },
+        });
+        if (onWorkflowComplete) onWorkflowComplete();
+      } catch (err: any) {
+        setError(err.message || "Create case failed.");
       }
     });
   }
@@ -83,7 +101,7 @@ export function AlertActionsClient({
             <Button
               onClick={handleAcknowledge}
               disabled={isPending}
-              className="w-full justify-center"
+              className="w-full justify-center cursor-pointer"
             >
               <CircleCheckIcon className="mr-2 size-4" />
               Acknowledge Alert
@@ -95,7 +113,7 @@ export function AlertActionsClient({
               onClick={handleCreateCase}
               disabled={isPending}
               variant="secondary"
-              className="w-full justify-center"
+              className="w-full justify-center cursor-pointer"
             >
               <ShieldAlertIcon className="mr-2 size-4" />
               Create Investigation Case

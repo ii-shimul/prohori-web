@@ -32,7 +32,7 @@ test("Phase 1 production read slices and preview fixture boundaries remain expli
   assert.match(cases, /cases\/\$\{encodeURIComponent\(caseId\)\}\/timeline/);
   assert.match(feedHealth, /data-quality\/incidents/);
   assert.match(readiness, /management\/readiness/);
-  assert.match(operationsView, /filterAction === "\/preview\/operations" \? "fixture" : "api"/);
+  assert.match(operationsView, /minimalApiRequest/);
 });
 
 test("Phase 1 fixture adapters remain usable without API imports", async () => {

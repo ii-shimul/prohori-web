@@ -1,13 +1,70 @@
-import type { ReactNode } from "react";
+"use client";
 
+import { ReactNode, useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/app-shell";
-import { getApiRoles } from "@/lib/auth/api-roles";
-import { requireApiCurrentUser } from "@/lib/auth/current-user";
+import { supabase } from "@/lib/supabase/minimal-client";
+import { minimalApiRequest } from "@/lib/api/minimal-client";
+import type { UserRole } from "@/types/auth";
 
-export const dynamic = "force-dynamic";
+export default function DashboardLayout({ children }: { children: ReactNode }) {
+  const [loading, setLoading] = useState(true);
+  const [roles, setRoles] = useState<readonly UserRole[]>([]);
 
-export default async function DashboardLayout({ children }: { children: ReactNode }) {
-  const user = await requireApiCurrentUser();
-  const apiRoles = getApiRoles(user);
-  return <AppShell roles={apiRoles}>{children}</AppShell>;
+  useEffect(() => {
+    let active = true;
+    async function checkAuth() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          window.location.href = "/login";
+          return;
+        }
+
+        const me = await minimalApiRequest<{
+          memberships: { role: UserRole }[];
+          assignments: { role: UserRole }[];
+        }>("me");
+
+        if (active) {
+          const grantedRoles = new Set<UserRole>([
+            ...me.memberships.map((m) => m.role),
+            ...me.assignments.map((a) => a.role),
+          ]);
+          const rolePriority: readonly UserRole[] = [
+            "DEMO_ADMIN",
+            "PLATFORM_MANAGEMENT",
+            "DATA_STEWARD",
+            "VALIDATION_AUDITOR",
+            "PROVIDER_OPERATIONS",
+            "OUTLET_AGENT",
+          ];
+          setRoles(rolePriority.filter((r) => grantedRoles.has(r)));
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error("Auth check failed", err);
+        if (active) {
+          window.location.href = "/login";
+        }
+      }
+    }
+
+    checkAuth();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[var(--surface-1)]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="size-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground">Verifying access...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return <AppShell roles={roles}>{children}</AppShell>;
 }

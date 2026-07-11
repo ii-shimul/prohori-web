@@ -1,10 +1,7 @@
-import { OperationsView } from "@/components/dashboard/operations-view";
-import { parseOutletFilters } from "@/lib/operations/outlets";
+"use client";
 
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  return <OperationsView filters={parseOutletFilters(await searchParams)} variant="dashboard" />;
+import { OperationsView } from "@/components/dashboard/operations-view";
+
+export default function DashboardPage() {
+  return <OperationsView variant="dashboard" />;
 }

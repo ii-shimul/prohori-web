@@ -12,17 +12,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  acknowledgeCase,
-  assignCase,
-  addCaseNote,
-  requestCaseVerification,
-  escalateCase,
-  recordCaseDisposition,
-  resolveCase,
-  closeCase,
-  reopenCase,
-} from "@/app/(dashboard)/actions";
+import { minimalApiRequest } from "@/lib/api/minimal-client";
 import type { CaseRecord } from "@/lib/operations/cases";
 import type { CaseState } from "@/types/domain";
 
@@ -35,10 +25,16 @@ const seededUsers = [
   { id: "40000000-0000-4000-8000-000000000006", name: "Demo Administrator" },
 ];
 
-export function CaseWorkflow({ caseRecord }: { caseRecord: CaseRecord }) {
+export function CaseWorkflow({
+  caseRecord,
+  onWorkflowComplete,
+}: {
+  caseRecord: CaseRecord;
+  onWorkflowComplete?: () => void;
+}) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  
+
   // Note draft state
   const [noteDraft, setNoteDraft] = useState("");
 
@@ -59,26 +55,46 @@ export function CaseWorkflow({ caseRecord }: { caseRecord: CaseRecord }) {
     startTransition(async () => {
       try {
         await actionFn();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Workflow command failed.");
+        if (onWorkflowComplete) onWorkflowComplete();
+      } catch (err: any) {
+        setError(err.message || "Workflow command failed.");
       }
     });
   }
 
   function handleAcknowledge() {
-    executeAction(() => acknowledgeCase(caseRecord.id, caseRecord.version));
+    executeAction(() =>
+      minimalApiRequest(`cases/${caseRecord.id}/acknowledge`, {
+        method: "POST",
+        idempotencyKey: crypto.randomUUID(),
+        headers: { "x-correlation-id": crypto.randomUUID() },
+        body: JSON.stringify({ version: caseRecord.version }),
+      })
+    );
   }
 
   function handleAssign(assigneeUserId: string) {
     if (!assigneeUserId) return;
-    executeAction(() => assignCase(caseRecord.id, caseRecord.version, assigneeUserId));
+    executeAction(() =>
+      minimalApiRequest(`cases/${caseRecord.id}/assign`, {
+        method: "POST",
+        idempotencyKey: crypto.randomUUID(),
+        headers: { "x-correlation-id": crypto.randomUUID() },
+        body: JSON.stringify({ version: caseRecord.version, assigneeUserId }),
+      })
+    );
   }
 
   function handleAddNote() {
     const body = noteDraft.trim();
     if (!body) return;
     executeAction(async () => {
-      await addCaseNote(caseRecord.id, caseRecord.version, body);
+      await minimalApiRequest(`cases/${caseRecord.id}/notes`, {
+        method: "POST",
+        idempotencyKey: crypto.randomUUID(),
+        headers: { "x-correlation-id": crypto.randomUUID() },
+        body: JSON.stringify({ version: caseRecord.version, body }),
+      });
       setNoteDraft("");
     });
   }
@@ -87,21 +103,38 @@ export function CaseWorkflow({ caseRecord }: { caseRecord: CaseRecord }) {
     const summary = verificationSummary.trim();
     if (!summary) return;
     executeAction(async () => {
-      await requestCaseVerification(caseRecord.id, caseRecord.version, summary);
+      await minimalApiRequest(`cases/${caseRecord.id}/request-verification`, {
+        method: "POST",
+        idempotencyKey: crypto.randomUUID(),
+        headers: { "x-correlation-id": crypto.randomUUID() },
+        body: JSON.stringify({ version: caseRecord.version, summary }),
+      });
       setVerificationSummary("");
       setShowVerificationForm(false);
     });
   }
 
   function handleEscalate() {
-    executeAction(() => escalateCase(caseRecord.id, caseRecord.version));
+    executeAction(() =>
+      minimalApiRequest(`cases/${caseRecord.id}/escalate`, {
+        method: "POST",
+        idempotencyKey: crypto.randomUUID(),
+        headers: { "x-correlation-id": crypto.randomUUID() },
+        body: JSON.stringify({ version: caseRecord.version }),
+      })
+    );
   }
 
   function handleRecordDisposition() {
     const disp = dispositionSummary.trim();
     if (!disp) return;
     executeAction(async () => {
-      await recordCaseDisposition(caseRecord.id, caseRecord.version, disp);
+      await minimalApiRequest(`cases/${caseRecord.id}/disposition`, {
+        method: "POST",
+        idempotencyKey: crypto.randomUUID(),
+        headers: { "x-correlation-id": crypto.randomUUID() },
+        body: JSON.stringify({ version: caseRecord.version, disposition: disp }),
+      });
       setDispositionSummary("");
       setShowDispositionForm(false);
     });
@@ -111,17 +144,40 @@ export function CaseWorkflow({ caseRecord }: { caseRecord: CaseRecord }) {
     const summary = resolutionSummary.trim();
     if (!summary) return;
     executeAction(async () => {
-      await resolveCase(caseRecord.id, caseRecord.version, resolutionCode, summary);
+      await minimalApiRequest(`cases/${caseRecord.id}/resolve`, {
+        method: "POST",
+        idempotencyKey: crypto.randomUUID(),
+        headers: { "x-correlation-id": crypto.randomUUID() },
+        body: JSON.stringify({
+          version: caseRecord.version,
+          resolutionCode,
+          resolutionSummary: summary,
+        }),
+      });
       setResolutionSummary("");
     });
   }
 
   function handleClose() {
-    executeAction(() => closeCase(caseRecord.id, caseRecord.version));
+    executeAction(() =>
+      minimalApiRequest(`cases/${caseRecord.id}/close`, {
+        method: "POST",
+        idempotencyKey: crypto.randomUUID(),
+        headers: { "x-correlation-id": crypto.randomUUID() },
+        body: JSON.stringify({ version: caseRecord.version }),
+      })
+    );
   }
 
   function handleReopen() {
-    executeAction(() => reopenCase(caseRecord.id, caseRecord.version));
+    executeAction(() =>
+      minimalApiRequest(`cases/${caseRecord.id}/reopen`, {
+        method: "POST",
+        idempotencyKey: crypto.randomUUID(),
+        headers: { "x-correlation-id": crypto.randomUUID() },
+        body: JSON.stringify({ version: caseRecord.version }),
+      })
+    );
   }
 
   const { state, owner, notes, timeline } = caseRecord;
@@ -167,14 +223,14 @@ export function CaseWorkflow({ caseRecord }: { caseRecord: CaseRecord }) {
           <CardContent className="space-y-4">
             <div className="flex flex-wrap gap-2">
               {state === "OPEN" && (
-                <Button disabled={isPending} onClick={handleAcknowledge}>
+                <Button disabled={isPending} onClick={handleAcknowledge} className="cursor-pointer">
                   <ClipboardCheckIcon className="mr-2 size-4" />
                   Acknowledge Case
                 </Button>
               )}
 
               {state === "ACKNOWLEDGED" && (
-                <Button disabled={isPending} onClick={() => setShowVerificationForm(!showVerificationForm)}>
+                <Button disabled={isPending} onClick={() => setShowVerificationForm(!showVerificationForm)} className="cursor-pointer">
                   <CircleDotDashedIcon className="mr-2 size-4" />
                   {showVerificationForm ? "Cancel Verification" : "Start Investigation (Verify)"}
                 </Button>
@@ -182,13 +238,13 @@ export function CaseWorkflow({ caseRecord }: { caseRecord: CaseRecord }) {
 
               {state === "INVESTIGATING" && (
                 <>
-                  <Button disabled={isPending} variant="outline" onClick={() => setShowVerificationForm(!showVerificationForm)}>
+                  <Button disabled={isPending} variant="outline" onClick={() => setShowVerificationForm(!showVerificationForm)} className="cursor-pointer">
                     {showVerificationForm ? "Cancel Verification" : "Request Verification"}
                   </Button>
-                  <Button disabled={isPending} variant="outline" onClick={() => setShowDispositionForm(!showDispositionForm)}>
+                  <Button disabled={isPending} variant="outline" onClick={() => setShowDispositionForm(!showDispositionForm)} className="cursor-pointer">
                     {showDispositionForm ? "Cancel Disposition" : "Record Disposition"}
                   </Button>
-                  <Button disabled={isPending} variant="outline" onClick={handleEscalate}>
+                  <Button disabled={isPending} variant="outline" onClick={handleEscalate} className="cursor-pointer">
                     <ShieldAlertIcon className="mr-2 size-4" />
                     Escalate
                   </Button>
@@ -196,20 +252,20 @@ export function CaseWorkflow({ caseRecord }: { caseRecord: CaseRecord }) {
               )}
 
               {state === "ESCALATED" && (
-                <Button disabled={isPending} variant="outline" onClick={() => setShowDispositionForm(!showDispositionForm)}>
+                <Button disabled={isPending} variant="outline" onClick={() => setShowDispositionForm(!showDispositionForm)} className="cursor-pointer">
                   {showDispositionForm ? "Cancel Disposition" : "Record Disposition"}
                 </Button>
               )}
 
               {state === "RESOLVED" && (
-                <Button disabled={isPending} onClick={handleClose}>
+                <Button disabled={isPending} onClick={handleClose} className="cursor-pointer">
                   <CheckCircle2Icon className="mr-2 size-4" />
                   Close Case
                 </Button>
               )}
 
               {state === "CLOSED" && (
-                <Button disabled={isPending} variant="outline" onClick={handleReopen}>
+                <Button disabled={isPending} variant="outline" onClick={handleReopen} className="cursor-pointer">
                   Reopen Case
                 </Button>
               )}
@@ -226,7 +282,7 @@ export function CaseWorkflow({ caseRecord }: { caseRecord: CaseRecord }) {
                   value={verificationSummary}
                   onChange={(e) => setVerificationSummary(e.target.value)}
                 />
-                <Button disabled={isPending || !verificationSummary.trim()} onClick={handleRequestVerification}>
+                <Button disabled={isPending || !verificationSummary.trim()} onClick={handleRequestVerification} className="cursor-pointer">
                   Submit Verification Request
                 </Button>
               </div>
@@ -243,7 +299,7 @@ export function CaseWorkflow({ caseRecord }: { caseRecord: CaseRecord }) {
                   value={dispositionSummary}
                   onChange={(e) => setDispositionSummary(e.target.value)}
                 />
-                <Button disabled={isPending || !dispositionSummary.trim()} onClick={handleRecordDisposition}>
+                <Button disabled={isPending || !dispositionSummary.trim()} onClick={handleRecordDisposition} className="cursor-pointer">
                   Save Disposition
                 </Button>
               </div>
@@ -300,7 +356,7 @@ export function CaseWorkflow({ caseRecord }: { caseRecord: CaseRecord }) {
                     onChange={(e) => setResolutionSummary(e.target.value)}
                   />
                 </label>
-                <Button disabled={isPending || !resolutionSummary.trim()} onClick={handleResolve}>
+                <Button disabled={isPending || !resolutionSummary.trim()} onClick={handleResolve} className="cursor-pointer">
                   Resolve Case
                 </Button>
               </div>
@@ -324,7 +380,7 @@ export function CaseWorkflow({ caseRecord }: { caseRecord: CaseRecord }) {
                   value={noteDraft}
                   onChange={(e) => setNoteDraft(e.target.value)}
                 />
-                <Button disabled={isPending || !noteDraft.trim()} onClick={handleAddNote} variant="outline">
+                <Button disabled={isPending || !noteDraft.trim()} onClick={handleAddNote} variant="outline" className="cursor-pointer">
                   <MessageSquareTextIcon className="mr-2 size-4" />
                   Add Note
                 </Button>

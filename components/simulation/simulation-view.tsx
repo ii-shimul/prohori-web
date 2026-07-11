@@ -11,7 +11,7 @@ import { buttonVariants } from "@/components/ui/button-variants";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { simulationScenarios, type ScenarioCode, type ScenarioStage } from "@/lib/operations/simulation";
-import { resetSimulation, startSimulation, stepSimulation } from "@/app/(dashboard)/actions";
+import { minimalApiRequest } from "@/lib/api/minimal-client";
 
 function nextStage(stage: ScenarioStage): ScenarioStage {
   if (stage === "baseline") return "started";
@@ -41,10 +41,10 @@ export function SimulationView({ scenario: selectedScenario, stage }: { scenario
     setError(null);
     startTransition(async () => {
       try {
-        await resetSimulation();
+        await minimalApiRequest("simulation/reset", { method: "POST" });
         router.push(`/simulation?scenario=${scenario.code}&stage=baseline`);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Reset failed.");
+      } catch (err: any) {
+        setError(err.message || "Reset failed.");
       }
     });
   }
@@ -54,13 +54,19 @@ export function SimulationView({ scenario: selectedScenario, stage }: { scenario
     startTransition(async () => {
       try {
         if (stage === "baseline") {
-          await startSimulation(scenario.code);
+          await minimalApiRequest("simulation/start", {
+            method: "POST",
+            body: JSON.stringify({ scenario: scenario.code }),
+          });
         } else {
-          await stepSimulation(scenario.code);
+          await minimalApiRequest("simulation/step", {
+            method: "POST",
+            body: JSON.stringify({ scenario: scenario.code }),
+          });
         }
         router.push(`/simulation?scenario=${scenario.code}&stage=${next}`);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Simulation action failed.");
+      } catch (err: any) {
+        setError(err.message || "Simulation action failed.");
       }
     });
   }
@@ -133,6 +139,7 @@ export function SimulationView({ scenario: selectedScenario, stage }: { scenario
               disabled={isPending}
               variant="outline"
               onClick={handleReset}
+              className="cursor-pointer"
             >
               <RotateCcwIcon aria-hidden="true" />
               Reset Baseline
@@ -141,6 +148,7 @@ export function SimulationView({ scenario: selectedScenario, stage }: { scenario
               disabled={isPending}
               variant="default"
               onClick={handleAction}
+              className="cursor-pointer"
             >
               <StepForwardIcon aria-hidden="true" />
               {stage === "baseline" ? "Start Scenario" : stage === "step-2" ? "Restart Scenario" : "Run Next Step"}

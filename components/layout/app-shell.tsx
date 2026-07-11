@@ -1,13 +1,14 @@
-import type { ReactNode } from "react";
+"use client";
 
+import { ReactNode, useEffect, useState } from "react";
 import type { UserRole } from "@/types/auth";
-import { getLocale } from "@/lib/i18n/locale";
+import type { Locale } from "@/lib/i18n/locale";
 
 import { MobileNavigation, Sidebar } from "./sidebar";
 import { SyntheticBanner } from "./synthetic-banner";
 import { Topbar } from "./topbar";
 
-export async function AppShell({
+export function AppShell({
   children,
   role,
   roles,
@@ -18,8 +19,18 @@ export async function AppShell({
   roles?: readonly UserRole[];
   showSignOut?: boolean;
 }) {
+  const [locale, setLocale] = useState<Locale>("en");
+  
+  useEffect(() => {
+    // Read locale from cookie client-side
+    const match = document.cookie.match(/prohori_locale=(bn|en)/);
+    if (match?.[1]) {
+      setLocale(match[1] as Locale);
+    }
+  }, []);
+
   const effectiveRoles = roles ?? (role ? [role] : []);
-  const locale = await getLocale();
+
   return (
     <div className="flex min-h-screen bg-[var(--surface-1)]">
       <aside className="hidden w-64 shrink-0 border-r border-border bg-background md:block">
