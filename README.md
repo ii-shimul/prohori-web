@@ -8,7 +8,8 @@ Next.js web client for synthetic multi-provider operations review. Supabase hand
 2. Obtain values and seeded test accounts from API owner.
 3. Run `npm install`.
 4. Run `npm run dev`.
-5. Open `http://localhost:3000`.
+5. Set `NEXT_PUBLIC_PROHORI_API_URL=https://prohori-api.onrender.com/api/v1` in `.env.local`.
+6. Open `http://localhost:3001`.
 
 ## Checks
 
@@ -24,11 +25,11 @@ Live verification remains blocked until API owner supplies: Supabase test creden
 
 ## Contract status
 
-`prohori-api/openapi.yaml` does not exist yet. Do not invent endpoint models. When API owner releases versioned OpenAPI contract, copy it to `openapi.yaml`, update local types, and record version here.
+Authoritative backend contract is `../prohori-api/openapi.yaml`, version `1.0.0`. Phase 1 copies it to `openapi.yaml`, derives DTOs from it, and adds version parity validation. Until then, typed fixture data remains isolated from production API integration.
 
 ## Authentication
 
-Supabase SSR authentication uses browser/server clients and Next.js `proxy.ts` cookie refresh. Add the Supabase URL, publishable key, and seeded user credentials before testing sign-in.
+Supabase SSR authentication uses browser/server clients and Next.js `proxy.ts` cookie refresh. Add the Supabase URL, publishable key, and seeded user credentials before testing sign-in. In Render API environment variables, set `CORS_ORIGINS` to a comma-separated allowlist containing `http://localhost:3001` and deployed web origin. Do not use `*`.
 
 - `/` redirects to `/login` without verified claims and `/dashboard` with verified claims.
 - Dashboard routes fail closed when session or Supabase configuration is missing.
