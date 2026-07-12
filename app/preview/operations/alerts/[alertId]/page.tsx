@@ -10,5 +10,5 @@ export default async function PreviewAlertDetailPage({ params }: { params: Promi
   const alert = await getAlert((await params).alertId);
   if (!alert) notFound();
 
-  return <AppShell role="PROVIDER_OPERATIONS" showSignOut={false}><AlertDetailView alert={alert} backHref="/preview/operations/alerts" caseHref={alert.linkedCase ? `/preview/operations/cases/${alert.linkedCase.toLowerCase()}` : undefined} outletHref={`/preview/operations/outlets/${alert.outletId}`} /></AppShell>;
+  return <AppShell role="PROVIDER_OPERATIONS" showSignOut={false}><AlertDetailView alertId={(await params).alertId} backHref="/preview/operations/alerts" caseHref={alert.linkedCase ? `/preview/operations/cases/${alert.linkedCase.toLowerCase()}` : undefined} outletHref={`/preview/operations/outlets/${alert.outletId}`} /></AppShell>;
 }

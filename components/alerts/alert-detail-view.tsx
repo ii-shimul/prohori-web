@@ -7,6 +7,7 @@ import { ArrowLeftIcon } from "lucide-react";
 import { alertPresentation, qualityClass, severityClass } from "@/components/alerts/alert-presentation";
 import { AlertActionsClient } from "@/components/alerts/alert-actions-client";
 import { FreshnessBadge } from "@/components/shared/freshness-badge";
+import { PageLoading } from "@/components/shared/page-loading";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDateTime } from "@/lib/formatters/dates";

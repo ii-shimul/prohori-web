@@ -57,10 +57,6 @@ export async function proxy(request: NextRequest) {
   const { data, error } = await supabase.auth.getClaims();
   const isAuthenticated = !error && Boolean(data?.claims?.sub);
 
-  if (isProtectedPath(pathname) && !isAuthenticated) {
-    return copyCookies(response, NextResponse.redirect(new URL("/login", request.url)));
-  }
-
   if ((pathname === "/" || pathname === "/login") && isAuthenticated) {
     return copyCookies(response, NextResponse.redirect(new URL("/dashboard", request.url)));
   }

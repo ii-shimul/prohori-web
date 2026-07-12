@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/minimal-client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,8 +28,7 @@ export default function LoginPage() {
         setError(err.message || "Email or password is incorrect. Check both values and try again.");
         setLoading(false);
       } else {
-        // Direct browser redirect
-        window.location.href = "/dashboard";
+        router.replace("/dashboard");
       }
     } catch (ex) {
       setError("An unexpected error occurred. Please try again.");

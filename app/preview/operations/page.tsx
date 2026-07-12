@@ -15,7 +15,7 @@ export default async function OperationsPreviewPage({
 
   return (
     <AppShell role="PROVIDER_OPERATIONS" showSignOut={false}>
-      <OperationsView action="/preview/operations" filters={parseOutletFilters(await searchParams)} variant="dashboard" />
+      <OperationsView variant="dashboard" />
     </AppShell>
   );
 }

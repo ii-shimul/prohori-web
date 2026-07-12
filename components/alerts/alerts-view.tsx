@@ -18,6 +18,7 @@ import type { Locale } from "@/lib/i18n/locale";
 import { minimalApiRequest } from "@/lib/api/minimal-client";
 import { alertPresentation, severityClass } from "@/components/alerts/alert-presentation";
 import type { OperationsAlert, AlertFilters } from "@/lib/operations/alerts";
+import { mapAlertSeverity, mapAlertStatus, mapFreshness } from "@/lib/operations/live-data";
 
 export function AlertsView({ variant }: { variant: "alerts" | "preview" }) {
   const [loading, setLoading] = useState(true);
@@ -42,12 +43,17 @@ export function AlertsView({ variant }: { variant: "alerts" | "preview" }) {
       const activeLocale = (match?.[1] || "en") as Locale;
       setLocale(activeLocale);
 
-      const [rawAlerts, rawProviders, rawOutlets, rawCases] = await Promise.all([
+      const [alerts, providers, outlets, cases] = await Promise.all([
         minimalApiRequest<any[]>("alerts"),
         minimalApiRequest<any[]>("providers"),
         minimalApiRequest<any[]>("outlets"),
         minimalApiRequest<any[]>("cases").catch(() => []),
       ]);
+
+      const rawAlerts = alerts;
+      const rawProviders = providers;
+      const rawOutlets = outlets;
+      const rawCases = cases;
 
       const providerById = new Map(rawProviders.map((p) => [p.id, p.code]));
       const outletById = new Map(rawOutlets.map((o) => [o.id, o]));
@@ -74,19 +80,11 @@ export function AlertsView({ variant }: { variant: "alerts" | "preview" }) {
             ? "DATA_INCONSISTENCY"
             : "COMBINED_REVIEW";
 
-        const severity =
-          alert.severity === "low" ? "LOW" : alert.severity === "moderate" ? "MEDIUM" : "HIGH";
+        const severity = mapAlertSeverity(alert.severity);
 
-        const status =
-          alert.status === "open"
-            ? "active"
-            : alert.status === "acknowledged"
-            ? "acknowledged"
-            : alert.status === "assigned" || alert.status === "case_created"
-            ? "escalated"
-            : "resolved";
+        const status = mapAlertStatus(alert.status);
 
-        const freshness = alert.dataQuality === "healthy" ? "fresh" : alert.dataQuality === "degraded" ? "degraded" : "stale";
+        const freshness = mapFreshness(alert.dataQuality);
         const dataQuality = alert.dataQuality === "healthy" ? "good" : alert.dataQuality === "degraded" ? "degraded" : "critical";
 
         // Translate or fall back

@@ -17,6 +17,7 @@ import { PageLoading } from "@/components/shared/page-loading";
 import { ErrorState } from "@/components/shared/error-state";
 import type { Provider, RiskLevel } from "@/types/domain";
 import type { Freshness } from "@/lib/formatters/status";
+import { mapFreshness, toRiskLevel } from "@/lib/operations/live-data";
 
 type OutletRisk = {
   id: string;
@@ -81,14 +82,19 @@ export function OperationsView({ variant }: { variant: "dashboard" | "outlets" }
       setLoading(true);
       setError(null);
 
-      // Fetch base catalogs, alerts, and cases
-      const [rawOutlets, rawProviders, rawAreas, rawAlerts, rawCases] = await Promise.all([
+      const [outlets, providers, areas, alerts, cases] = await Promise.all([
         minimalApiRequest<any[]>("outlets"),
         minimalApiRequest<any[]>("providers"),
         minimalApiRequest<any[]>("areas"),
         minimalApiRequest<any[]>("alerts", { query: { active: "true" } }),
         minimalApiRequest<any[]>("cases"),
       ]);
+
+      const rawOutlets = outlets;
+      const rawProviders = providers;
+      const rawAreas = areas;
+      const rawAlerts = alerts;
+      const rawCases = cases;
 
       setProviders(rawProviders);
       setAreas(rawAreas);
@@ -112,19 +118,11 @@ export function OperationsView({ variant }: { variant: "dashboard" | "outlets" }
             ) ?? forecast.resources?.[0];
             const point = resource?.points?.at(-1);
 
-            const risk = (point?.riskBand === "high" || point?.riskBand === "critical"
-              ? "high"
-              : point?.riskBand === "moderate"
-              ? "medium"
-              : "low") as RiskLevel;
+            const risk = toRiskLevel(point?.riskBand) as RiskLevel;
 
-            const freshness = (health.dataQuality === "healthy"
-              ? "fresh"
-              : health.dataQuality === "degraded"
-              ? "degraded"
-              : "stale") as Freshness;
+            const freshness = mapFreshness(health.dataQuality) as Freshness;
 
-            return {
+            const outletRisk: OutletRisk = {
               id: outlet.id,
               outletName: outlet.name,
               area: outlet.area?.name || "Unknown",
@@ -142,6 +140,8 @@ export function OperationsView({ variant }: { variant: "dashboard" | "outlets" }
               openCases: null,
               highAlerts: null,
             };
+
+            return outletRisk;
           } catch (e) {
             console.error(`Failed to load details for outlet ${outlet.id}`, e);
             return null;
@@ -149,8 +149,10 @@ export function OperationsView({ variant }: { variant: "dashboard" | "outlets" }
         })
       );
 
-      const validRows = detailRows.filter((r): r is OutletRisk => r !== null);
+      const validRows = detailRows.filter((row): row is OutletRisk => row !== null);
       setRows(validRows);
+
+      const typedRows = validRows;
 
       // Compute KPIs
       const activeHighAlerts = rawAlerts.filter(
@@ -161,8 +163,8 @@ export function OperationsView({ variant }: { variant: "dashboard" | "outlets" }
         (c: any) => c.state !== "RESOLVED" && c.state !== "CLOSED"
       ).length;
 
-      const underPressure = validRows.filter((r) => r.risk === "high").length;
-      const staleCount = validRows.filter((r) => r.freshness === "stale").length;
+      const underPressure = typedRows.filter((r) => r.risk === "high").length;
+      const staleCount = typedRows.filter((r) => r.freshness === "stale").length;
 
       setKpis({
         outletsUnderPressure: underPressure,

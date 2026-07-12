@@ -5,7 +5,6 @@ import type { UserRole } from "@/types/auth";
 import type { Locale } from "@/lib/i18n/locale";
 
 import { MobileNavigation, Sidebar } from "./sidebar";
-import { SyntheticBanner } from "./synthetic-banner";
 import { Topbar } from "./topbar";
 
 export function AppShell({
@@ -41,7 +40,6 @@ export function AppShell({
         <div className="border-b border-border bg-background md:hidden">
           <MobileNavigation roles={effectiveRoles} />
         </div>
-        <SyntheticBanner />
         <main id="main-content" className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
           {children}
         </main>

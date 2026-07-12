@@ -3,6 +3,21 @@ import { buildApiUrl, createCorrelationId } from "./url";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_PROHORI_API_URL || "http://localhost:3000/api/v1";
 
+async function getAccessToken(): Promise<string | null> {
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error) {
+      console.warn("Supabase session lookup failed", error);
+      return null;
+    }
+
+    return session?.access_token ?? null;
+  } catch (error) {
+    console.warn("Supabase session lookup threw", error);
+    return null;
+  }
+}
+
 export async function minimalApiRequest<T>(
   path: string,
   options: RequestInit & {
@@ -10,8 +25,7 @@ export async function minimalApiRequest<T>(
     idempotencyKey?: string;
   } = {}
 ): Promise<T> {
-  const sessionResult = await supabase.auth.getSession();
-  const token = sessionResult.data.session?.access_token;
+  const token = await getAccessToken();
 
   const url = buildApiUrl(path, API_BASE_URL);
   if (options.query) {
@@ -42,9 +56,11 @@ export async function minimalApiRequest<T>(
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => ({}));
-    const error = new Error(errorBody.message || `API error: ${response.status}`);
+    const message = errorBody.message || errorBody.error || `API error: ${response.status}`;
+    const error = new Error(message);
     (error as any).status = response.status;
     (error as any).code = errorBody.code;
+    (error as any).details = errorBody;
     throw error;
   }
 
